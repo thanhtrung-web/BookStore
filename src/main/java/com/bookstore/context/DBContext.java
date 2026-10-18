@@ -15,7 +15,7 @@ import java.util.Properties;
 public class DBContext {
 
     private static String driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    private static String url = "jdbc:sqlserver://;serverName=(localdb)\\thanhtrung;databaseName=BookStoreDB;encrypt=true;trustServerCertificate=true";
+    private static String url = "jdbc:sqlserver://localhost:1433;databaseName=BookStoreDB;encrypt=true;trustServerCertificate=true";
     private static String user = "sa";
     private static String password = "123456";
 

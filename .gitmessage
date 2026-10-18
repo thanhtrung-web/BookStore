@@ -1,0 +1,26 @@
+# =============================================================================
+# Format: <type>(<scope>): <mô tả ngắn gọn về hành động>
+# Ví dụ: feature(login): add captcha verification
+#        bugfix(cart): fix price calculation with voucher
+# =============================================================================
+#
+# --- LOẠI COMMIT (TYPE - BẮT BUỘC) ---
+#   feature  : Tính năng mới
+#   bugfix   : Sửa lỗi hệ thống
+#   refactor : Tối ưu code (không đổi logic, không fix bug)
+#   docs     : Cập nhật tài liệu / readme / sơ đồ UML
+#   chore    : Cấu hình tool, build, .gitignore
+#   style    : Format code, khoảng trắng
+#   perf     : Tối ưu hiệu năng, tốc độ xử lý
+#   vendor   : Cập nhật dependency, thư viện pom.xml
+#
+# --- PHẠM VI (SCOPE - TÙY CHỌN) ---
+#   auth, user, book, cart, order, db, readme, filter...
+#
+# --- QUY TẮC ĐẶT TÊN NHÁNH (BRANCH) ---
+#   feature/<tên-chức-năng>   (VD: feature/login-captcha)
+#   bugfix/<tên-lỗi>          (VD: bugfix/cart-null-pointer)
+#   hotfix/<tên-lỗi-khẩn-cấp> (VD: hotfix/security-patch)
+#   refactor/<tên-module>     (VD: refactor/dbcontext)
+#   docs/<tên-tài-liệu>       (VD: docs/update-readme)
+# =============================================================================
