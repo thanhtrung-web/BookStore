@@ -176,6 +176,53 @@ public class UserDAO {
     }
 
     /**
+     * Finds a user record by email and 6-digit OTP verification code (UC-01 verifyEmail).
+     */
+    public User findByEmailAndToken(String email, String token) throws SQLException {
+        String sql = "SELECT * FROM dbo.users WHERE email = ? AND email_verification_token = ? AND is_deleted = 0";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, email);
+            ps.setString(2, token);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return mapUserRow(rs);
+            }
+            return null;
+        } finally {
+            DBContext.close(conn, ps, rs);
+        }
+    }
+
+    /**
+     * Updates an existing unverified (INACTIVE) user record with newly submitted registration info and OTP code.
+     */
+    public boolean updatePendingUser(User user) throws SQLException {
+        String sql = "UPDATE dbo.users "
+                + "SET password_hash = ?, full_name = ?, phone_number = ?, "
+                + "email_verification_token = ?, is_email_verified = 0, status = 'INACTIVE', updated_at = GETDATE() "
+                + "WHERE email = ? AND is_email_verified = 0 AND is_deleted = 0";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, user.getPasswordHash());
+            ps.setString(2, user.getFullName());
+            ps.setString(3, user.getPhoneNumber());
+            ps.setString(4, user.getEmailVerificationToken());
+            ps.setString(5, user.getEmail());
+            return ps.executeUpdate() > 0;
+        } finally {
+            DBContext.close(conn, ps, null);
+        }
+    }
+
+    /**
      * Activates a user account upon valid email token verification (UC-01 activateByToken).
      */
     public boolean activateByToken(long userId) throws SQLException {

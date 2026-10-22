@@ -5,26 +5,38 @@ import com.bookstore.model.User;
 import com.bookstore.service.EmailService.EmailDeliveryException;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
  * AuthService («service» :AuthService) - Business Logic Layer for UC-01 Register & UC-02 Login.
- * Implements input validation, BCrypt hashing/verification, token generation, and account status checks.
+ * Implements strict Gmail validation, BCrypt hashing/verification, 6-digit OTP generation, and account status checks.
  */
 public class AuthService {
 
-    private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    /**
+     * Strict Gmail address pattern:
+     * - Local part must start and end with alphanumeric characters
+     * - Dots/underscores/hyphens cannot be consecutive or placed immediately before '@'
+     * - Domain must strictly be '@gmail.com' (blocks example@.gmail.com, example@email.com, etc.)
+     */
+    private static final Pattern GMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9]+([._+-][A-Za-z0-9]+)*@gmail\\.com$",
+            Pattern.CASE_INSENSITIVE
     );
+
     private static final Pattern PHONE_PATTERN = Pattern.compile(
             "^(0|\\+84)[0-9]{8,10}$"
     );
+
+    private static final Pattern OTP_6_DIGIT_PATTERN = Pattern.compile("^[0-9]{6}$");
+
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int BCRYPT_WORK_FACTOR = 12;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserDAO userDAO;
     private final EmailService emailService;
@@ -54,9 +66,9 @@ public class AuthService {
         }
 
         if (email == null || email.trim().isEmpty()) {
-            errors.put("email", "Email address cannot be blank.");
-        } else if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
-            errors.put("email", "Invalid email format.");
+            errors.put("email", "Gmail address cannot be blank.");
+        } else if (!GMAIL_PATTERN.matcher(email.trim()).matches()) {
+            errors.put("email", "Please enter a valid Gmail address (e.g. example@gmail.com).");
         }
 
         if (phone == null || phone.trim().isEmpty()) {
@@ -81,14 +93,18 @@ public class AuthService {
     }
 
     /**
-     * Generates a cryptographically random verification token (UC-01 generateVerificationToken).
+     * Generates a cryptographically random 6-digit OTP verification code (100000 - 999999)
+     * (UC-01 generateVerificationToken).
      */
     public String generateVerificationToken() {
-        return UUID.randomUUID().toString();
+        int otp = 100000 + SECURE_RANDOM.nextInt(900000);
+        return String.valueOf(otp);
     }
 
     /**
-     * Registers a new buyer account and sends an activation email (UC-01 register).
+     * Step 1 of UC-01 Register:
+     * Validates inputs, checks duplicate email in DB, hashes password, generates 6-digit OTP,
+     * and dispatches the 6-digit OTP to the user's Gmail inbox BEFORE persisting to DB.
      */
     public User register(String fullName, String email, String phone,
                          String password, String confirmPassword, String baseUrl)
@@ -97,39 +113,37 @@ public class AuthService {
         // 1. Validate form fields
         Map<String, String> validationErrors = validateInput(fullName, email, phone, password, confirmPassword);
         if (!validationErrors.isEmpty()) {
-            throw new ValidationException("Invalid registration input.", validationErrors);
+            throw new ValidationException("Please check the highlighted registration fields.", validationErrors);
         }
 
         String normalizedEmail = email.trim().toLowerCase();
         String normalizedName = fullName.trim();
         String normalizedPhone = phone.trim();
 
-        // 2. Check duplicate email in database
+        // 2. Check existing email in database
         if (userDAO.existsByEmail(normalizedEmail)) {
-            throw new EmailExistsException("Email is already registered. Please login or use a different email.");
+            throw new EmailExistsException("This Gmail address is already registered. Please sign in or use another Gmail.");
         }
 
-        // 3. Hash password with BCrypt & generate verification token
+        // 3. Hash password with BCrypt & generate 6-digit OTP verification code
         String passwordHash = BCrypt.hashpw(password, BCrypt.gensalt(BCRYPT_WORK_FACTOR));
-        String token = generateVerificationToken();
+        String otpCode = generateVerificationToken();
 
-        // 4. Create user record & assign BUYER role inside JDBC transaction
-        User newUser = new User();
-        newUser.setEmail(normalizedEmail);
-        newUser.setPasswordHash(passwordHash);
-        newUser.setFullName(normalizedName);
-        newUser.setPhoneNumber(normalizedPhone);
-        newUser.setAuthProvider("LOCAL");
-        newUser.setEmailVerificationToken(token);
-        newUser.setEmailVerified(false);
-        newUser.setStatus("INACTIVE");
+        // 4. Prepare pending User object (will be inserted into DB once 6-digit OTP is verified)
+        User pendingUser = new User();
+        pendingUser.setEmail(normalizedEmail);
+        pendingUser.setPasswordHash(passwordHash);
+        pendingUser.setFullName(normalizedName);
+        pendingUser.setPhoneNumber(normalizedPhone);
+        pendingUser.setAuthProvider("LOCAL");
+        pendingUser.setEmailVerificationToken(otpCode);
+        pendingUser.setEmailVerified(true);
+        pendingUser.setStatus("ACTIVE");
 
-        User createdUser = userDAO.createUser(newUser, "BUYER");
+        // 5. Send 6-digit OTP email via Gmail SMTP
+        emailService.sendActivationEmail(normalizedEmail, otpCode, baseUrl);
 
-        // 5. Send activation email via EmailService
-        emailService.sendActivationEmail(normalizedEmail, token, baseUrl);
-
-        return createdUser;
+        return pendingUser;
     }
 
     /**
@@ -142,16 +156,56 @@ public class AuthService {
     }
 
     /**
-     * Verifies an email activation token and activates the user account (UC-01 verifyEmail).
+     * Step 2 of UC-01 Register:
+     * Verifies the 6-digit OTP code entered by the user against the pending registration session
+     * and persists the verified Buyer account into dbo.users and dbo.user_roles.
      */
-    public void verifyEmail(String token) throws InvalidTokenException, SQLException {
-        if (token == null || token.trim().isEmpty()) {
-            throw new InvalidTokenException("Activation link is invalid or expired.");
+    public User verifyOtpAndCreateUser(User pendingUser, String submittedOtp)
+            throws InvalidTokenException, EmailExistsException, SQLException {
+
+        if (pendingUser == null || pendingUser.getEmail() == null) {
+            throw new InvalidTokenException("Registration session expired. Please fill in the registration form again.");
         }
 
-        User user = userDAO.findByVerificationToken(token.trim());
+        if (submittedOtp == null || !OTP_6_DIGIT_PATTERN.matcher(submittedOtp.trim()).matches()) {
+            throw new InvalidTokenException("Please enter all 6 digits of the verification code.");
+        }
+
+        String expectedOtp = pendingUser.getEmailVerificationToken();
+        if (expectedOtp == null || !expectedOtp.equals(submittedOtp.trim())) {
+            throw new InvalidTokenException("Incorrect 6-digit verification code. Please check your Gmail and try again.");
+        }
+
+        if (userDAO.existsByEmail(pendingUser.getEmail())) {
+            throw new EmailExistsException("This Gmail address is already registered. Please sign in.");
+        }
+
+        // Clear token and save verified ACTIVE user to database inside atomic JDBC transaction
+        pendingUser.setEmailVerificationToken(null);
+        pendingUser.setEmailVerified(true);
+        pendingUser.setStatus("ACTIVE");
+
+        return userDAO.createUser(pendingUser, "BUYER");
+    }
+
+    /**
+     * Verifies a 6-digit OTP code for an existing unverified DB record (fallback).
+     */
+    public void verifyEmail(String email, String otpCode) throws InvalidTokenException, SQLException {
+        if (otpCode == null || !OTP_6_DIGIT_PATTERN.matcher(otpCode.trim()).matches()) {
+            throw new InvalidTokenException("Please enter a valid 6-digit verification code.");
+        }
+
+        String trimmedOtp = otpCode.trim();
+        User user;
+        if (email != null && !email.trim().isEmpty()) {
+            user = userDAO.findByEmailAndToken(email.trim().toLowerCase(), trimmedOtp);
+        } else {
+            user = userDAO.findByVerificationToken(trimmedOtp);
+        }
+
         if (user == null) {
-            throw new InvalidTokenException("Activation link is invalid or expired.");
+            throw new InvalidTokenException("Incorrect 6-digit verification code. Please check your Gmail inbox and try again.");
         }
 
         boolean activated = userDAO.activateByToken(user.getId());
@@ -161,28 +215,46 @@ public class AuthService {
     }
 
     /**
-     * Generates a new verification token and resends the activation email (UC-01 opt [Resend activation email]).
+     * Single-argument overload matching Sequence Diagram signature: verifyEmail(token).
+     */
+    public void verifyEmail(String token) throws InvalidTokenException, SQLException {
+        verifyEmail(null, token);
+    }
+
+    /**
+     * Generates a new 6-digit OTP code and resends the verification email to the pending user's Gmail.
+     */
+    public String resendOtpForPendingUser(User pendingUser, String baseUrl)
+            throws ValidationException, EmailDeliveryException {
+        if (pendingUser == null || pendingUser.getEmail() == null || pendingUser.getEmail().trim().isEmpty()) {
+            Map<String, String> err = new LinkedHashMap<>();
+            err.put("email", "Registration session expired. Please register again.");
+            throw new ValidationException("Registration session expired. Please register again.", err);
+        }
+
+        String newOtpCode = generateVerificationToken();
+        pendingUser.setEmailVerificationToken(newOtpCode);
+        emailService.sendActivationEmail(pendingUser.getEmail(), newOtpCode, baseUrl);
+        return newOtpCode;
+    }
+
+    /**
+     * Generates a new 6-digit OTP code and resends the verification email (UC-01 opt [Resend activation email]).
      */
     public String resendActivation(String email, String baseUrl)
             throws ValidationException, EmailDeliveryException, SQLException {
         if (email == null || email.trim().isEmpty()) {
             Map<String, String> err = new LinkedHashMap<>();
-            err.put("email", "Email address is required to resend activation link.");
-            throw new ValidationException("Email address is required.", err);
+            err.put("email", "Gmail address is required to resend the verification code.");
+            throw new ValidationException("Gmail address is required.", err);
         }
 
         String normalizedEmail = email.trim().toLowerCase();
-        String newToken = generateVerificationToken();
+        String newOtpCode = generateVerificationToken();
 
-        boolean updated = userDAO.updateVerificationToken(normalizedEmail, newToken);
-        if (!updated) {
-            Map<String, String> err = new LinkedHashMap<>();
-            err.put("email", "No pending account found for this email address.");
-            throw new ValidationException("No pending account found for this email address.", err);
-        }
-
-        emailService.sendActivationEmail(normalizedEmail, newToken, baseUrl);
-        return newToken;
+        userDAO.updateVerificationToken(normalizedEmail, newOtpCode);
+        emailService.sendActivationEmail(normalizedEmail, newOtpCode, baseUrl);
+        return newOtpCode;
     }
 
     /**
@@ -203,14 +275,14 @@ public class AuthService {
         User user = userDAO.findByEmail(normalizedEmail);
 
         // 1. Check user existence and verify BCrypt password hash
-        if (user == null || user.getPasswordHash() == null || ! verifyPassword(password, user.getPasswordHash())) {
+        if (user == null || user.getPasswordHash() == null || !verifyPassword(password, user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
         }
 
         // 2. Check email verification & account status
         if (!user.isEmailVerified() || !"ACTIVE".equalsIgnoreCase(user.getStatus())) {
             throw new AccountNotActiveException(
-                    "Your account is not active. Please verify your email or contact support."
+                    "Your account is not active yet. Please verify the 6-digit code sent to your Gmail."
             );
         }
 

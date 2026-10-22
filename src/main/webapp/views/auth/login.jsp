@@ -604,7 +604,7 @@
                                    id="email"
                                    name="email"
                                    class="form-input ${not empty validationErrors['email'] ? 'is-invalid' : ''}"
-                                   placeholder="name@example.com"
+                                   placeholder="example@gmail.com"
                                    value="<c:out value='${email}'/>"
                                    required>
                         </div>

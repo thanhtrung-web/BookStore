@@ -466,6 +466,88 @@
             color: #ffffff;
         }
 
+        /* OTP 6-Digit Verification Styles (UC-01 Verification Screen) */
+        .otp-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 22px 0 24px;
+        }
+        .otp-box {
+            width: 46px;
+            height: 54px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .otp-box:focus {
+            outline: none;
+            border-color: #142d6f;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(20, 45, 111, 0.12);
+            transform: scale(1.05);
+        }
+        .otp-divider {
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 18px;
+            user-select: none;
+        }
+        .btn-verify {
+            width: 100%;
+            height: 48px;
+            background: #142d6f;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14.5px;
+            font-weight: 700;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(20, 45, 111, 0.22);
+            transition: all 0.2s ease;
+        }
+        .btn-verify:hover {
+            background: #1d3f96;
+            transform: translateY(-1px);
+        }
+        .resend-row {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #f1f5f9;
+            text-align: center;
+            font-size: 12.5px;
+            color: #64748b;
+        }
+        .btn-resend-link {
+            background: none;
+            border: none;
+            color: #142d6f;
+            font-weight: 700;
+            font-size: 12.5px;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            margin-left: 4px;
+        }
+        .btn-resend-link:disabled {
+            color: #94a3b8;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
         /* Bottom Sign In Link */
         .signin-footer-text {
             margin-top: 20px;
@@ -627,8 +709,8 @@
             <!-- Right Registration Form Panel -->
             <section class="right-panel">
                 <div class="form-header">
-                    <h1>Create Account</h1>
-                    <p>Join our literary community and start exploring today.</p>
+                    <h1><c:choose><c:when test="${registerSuccess}">Xác thực tài khoản</c:when><c:otherwise>Create Account</c:otherwise></c:choose></h1>
+                    <p><c:choose><c:when test="${registerSuccess}">Nhập mã 6 chữ số đã được gửi tới email của bạn.</c:when><c:otherwise>Join our literary community and start exploring today.</c:otherwise></c:choose></p>
                 </div>
 
                 <!-- Error Alert Box -->
@@ -661,35 +743,60 @@
                 </c:if>
 
                 <c:choose>
-                    <%-- State 1: Email Verification Pending (after successful registration or resend) --%>
+                    <%-- State 1: Email Verification OTP Screen (after successful registration or resend) --%>
                     <c:when test="${registerSuccess}">
-                        <div class="verify-pending-box">
-                            <div class="verify-icon-circle">
-                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                            </div>
-                            <h3>Check Your Email Inbox</h3>
-                            <p>
-                                We have sent an account activation link to
-                                <strong><c:out value="${registeredEmail}"/></strong>.<br>
-                                Please click the verification link in your email to activate your Buyer account.
-                            </p>
-
-                            <c:if test="${not empty verificationToken}">
-                                <div class="dev-activate-box">
-                                    <strong>Quick Demo Activation Link:</strong><br>
-                                    <a href="${pageContext.request.contextPath}/verify-email?token=${verificationToken}">
-                                        Click here to verify email now (${verificationToken})
-                                    </a>
+                        <div class="verify-pending-box" style="text-align: left; padding: 22px 24px;">
+                            <div style="display:flex; align-items:center; gap: 12px; margin-bottom: 14px;">
+                                <div class="verify-icon-circle" style="margin: 0; width: 44px; height: 44px; flex-shrink: 0;">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                        <polyline points="22,6 12,13 2,6"></polyline>
+                                    </svg>
                                 </div>
-                            </c:if>
+                                <div>
+                                    <h3 style="font-size: 16px; margin: 0; font-weight: 800; color: #0f172a;">Kiểm tra hộp thư đến</h3>
+                                    <p style="font-size: 12.5px; color: #64748b; margin: 0;">
+                                        Mã xác thực đã được gửi tới: <strong style="color:#142d6f;"><c:out value="${registeredEmail}"/></strong>
+                                    </p>
+                                </div>
+                            </div>
 
-                            <form action="${pageContext.request.contextPath}/resend-activation" method="post">
-                                <input type="hidden" name="email" value="<c:out value='${registeredEmail}'/>">
-                                <button type="submit" class="btn-resend">Resend Activation Email</button>
+                            <!-- OTP Code Verification Form -->
+                            <form action="${pageContext.request.contextPath}/verify-email" method="POST" id="otpForm" style="margin-top: 10px;">
+                                <input type="hidden" name="email" value="<c:out value='${registeredEmail}'/>" />
+                                <div class="otp-container">
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" autofocus />
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" />
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" />
+                                    <span class="otp-divider">-</span>
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" />
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" />
+                                    <input type="text" maxlength="1" pattern="[0-9]" inputmode="numeric" class="otp-box" />
+                                </div>
+                                <input type="hidden" name="token" id="fullToken" value="" />
+
+                                <button type="submit" class="btn-verify">
+                                    <span>Xác nhận &amp; Kích hoạt tài khoản</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </button>
                             </form>
+
+                            <!-- Resend Code Form -->
+                            <div class="resend-row">
+                                <form action="${pageContext.request.contextPath}/resend-activation" method="POST" id="resendForm" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+                                    <input type="hidden" name="email" value="<c:out value='${registeredEmail}'/>">
+                                    <span>Chưa nhận được mã?</span>
+                                    <button type="submit" id="resendBtn" disabled class="btn-resend-link">
+                                        Gửi lại mã (<span id="countdown">59</span>s)
+                                    </button>
+                                </form>
+                                <p style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
+                                    Vui lòng kiểm tra thêm thư mục <em>Spam / Thư rác</em> nếu không thấy mã.
+                                </p>
+                            </div>
                         </div>
                     </c:when>
 
@@ -733,7 +840,7 @@
                                            id="email"
                                            name="email"
                                            class="form-input ${not empty validationErrors['email'] ? 'is-invalid' : ''}"
-                                           placeholder="example@email.com"
+                                           placeholder="example@gmail.com"
                                            value="<c:out value='${email}'/>"
                                            required>
                                 </div>
@@ -866,6 +973,74 @@
                 field.type = (field.type === 'password') ? 'text' : 'password';
             }
         }
+
+        // OTP Auto-Focus & Resend Countdown Logic (State 1: Verification Screen)
+        (function() {
+            var inputs = document.querySelectorAll('.otp-box');
+            var fullToken = document.getElementById('fullToken');
+            var resendBtn = document.getElementById('resendBtn');
+            var countdown = document.getElementById('countdown');
+
+            if (inputs.length > 0) {
+                inputs.forEach(function(input, index) {
+                    input.addEventListener('input', function(e) {
+                        var val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                        e.target.value = val;
+                        if (val && index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        }
+                        updateFullToken();
+                    });
+
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && !input.value && index > 0) {
+                            inputs[index - 1].focus();
+                        }
+                    });
+
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, '').slice(0, 6);
+                        if (pasted) {
+                            pasted.split('').forEach(function(ch, i) {
+                                if (inputs[i]) inputs[i].value = ch;
+                            });
+                            if (inputs[pasted.length - 1]) {
+                                inputs[pasted.length - 1].focus();
+                            }
+                            updateFullToken();
+                        }
+                    });
+                });
+
+                function updateFullToken() {
+                    var code = '';
+                    inputs.forEach(function(i) { code += i.value.trim(); });
+                    if (fullToken) fullToken.value = code;
+                }
+
+                var otpForm = document.getElementById('otpForm');
+                if (otpForm) {
+                    otpForm.addEventListener('submit', function() {
+                        updateFullToken();
+                    });
+                }
+
+                // 60s Resend Countdown
+                if (resendBtn && countdown) {
+                    var timeLeft = 59;
+                    var timer = setInterval(function() {
+                        timeLeft--;
+                        countdown.textContent = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            resendBtn.disabled = false;
+                            resendBtn.innerHTML = "Gửi lại mã ngay";
+                        }
+                    }, 1000);
+                }
+            }
+        })();
     </script>
 </body>
 </html>

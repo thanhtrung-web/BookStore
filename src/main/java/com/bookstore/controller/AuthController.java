@@ -37,6 +37,7 @@ public class AuthController extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final int SESSION_TIMEOUT_SECONDS = 60 * 60; // 1h
     private static final int REMEMBER_ME_COOKIE_AGE = 7 * 24 * 60 * 60; // 7 days
+    private static final String SESSION_PENDING_REG_USER = "pendingRegUser";
 
     private AuthService authService;
 
@@ -76,6 +77,9 @@ public class AuthController extends HttpServlet {
         switch (path) {
             case "/register":
                 register(request, response);
+                break;
+            case "/verify-email":
+                verifyEmail(request, response);
                 break;
             case "/resend-activation":
                 resendActivation(request, response);
@@ -119,14 +123,16 @@ public class AuthController extends HttpServlet {
         }
 
         if ("true".equals(request.getParameter("verified"))) {
-            request.setAttribute("successMessage", "Your email has been verified! Please sign in.");
+            request.setAttribute("successMessage", "Xác thực Gmail thành công! Tài khoản của bạn đã được tạo, vui lòng đăng nhập.");
         }
 
         request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
     }
 
     /**
-     * Handles UC-01 Register submission: register(fullName, email, phone, password, confirmPassword).
+     * Step 1 of UC-01 Register:
+     * Validates form inputs, generates a 6-digit OTP, sends it to the user's Gmail,
+     * and stores pending registration info in HttpSession awaiting OTP verification.
      */
     protected void register(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -146,11 +152,14 @@ public class AuthController extends HttpServlet {
         String baseUrl = getApplicationBaseUrl(request);
 
         try {
-            User createdUser = authService.register(fullName, email, phone, password, confirmPassword, baseUrl);
+            User pendingUser = authService.register(fullName, email, phone, password, confirmPassword, baseUrl);
+
+            HttpSession session = request.getSession(true);
+            session.setAttribute(SESSION_PENDING_REG_USER, pendingUser);
+
             request.setAttribute("registerSuccess", true);
-            request.setAttribute("registeredEmail", createdUser.getEmail());
-            request.setAttribute("verificationToken", createdUser.getEmailVerificationToken());
-            request.setAttribute("successMessage", "Please check your email inbox to activate your account.");
+            request.setAttribute("registeredEmail", pendingUser.getEmail());
+            request.setAttribute("successMessage", "Mã xác thực 6 chữ số đã được gửi tới hộp thư Gmail: " + pendingUser.getEmail());
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
         } catch (ValidationException ex) {
@@ -163,8 +172,7 @@ public class AuthController extends HttpServlet {
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
         } catch (EmailDeliveryException ex) {
-            request.setAttribute("registeredEmail", email != null ? email.trim() : "");
-            request.setAttribute("errorMessage", "Email delivery failed. Please click 'Resend Email' to try again.");
+            request.setAttribute("errorMessage", ex.getMessage());
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
         } catch (SQLException ex) {
@@ -174,46 +182,79 @@ public class AuthController extends HttpServlet {
     }
 
     /**
-     * Handles Email Verification link: verifyEmail(token).
+     * Step 2 of UC-01 Register:
+     * Verifies the 6-digit OTP code entered by the user and inserts the verified account into SQL Server.
      */
     protected void verifyEmail(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        String email = request.getParameter("email");
         String token = request.getParameter("token");
+        if (token == null || token.trim().isEmpty()) {
+            token = request.getParameter("otp");
+        }
+
+        HttpSession session = request.getSession(false);
+        User pendingUser = (session != null) ? (User) session.getAttribute(SESSION_PENDING_REG_USER) : null;
+
         try {
-            authService.verifyEmail(token);
+            if (pendingUser != null) {
+                authService.verifyOtpAndCreateUser(pendingUser, token);
+                session.removeAttribute(SESSION_PENDING_REG_USER);
+            } else {
+                authService.verifyEmail(email, token);
+            }
             response.sendRedirect(request.getContextPath() + "/login?verified=true");
 
         } catch (InvalidTokenException ex) {
-            request.setAttribute("pageTitle", "Account Activation - BookStore");
+            request.setAttribute("pageTitle", "Verify Gmail Code - BookStore");
+            request.setAttribute("registerSuccess", true);
+            request.setAttribute("registeredEmail", pendingUser != null ? pendingUser.getEmail() : email);
             request.setAttribute("errorMessage", ex.getMessage());
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
+        } catch (EmailExistsException ex) {
+            if (session != null) {
+                session.removeAttribute(SESSION_PENDING_REG_USER);
+            }
+            request.setAttribute("errorMessage", ex.getMessage());
+            request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+
         } catch (SQLException ex) {
-            request.setAttribute("pageTitle", "Account Activation - BookStore");
-            request.setAttribute("errorMessage", "Database error occurred while verifying email.");
+            request.setAttribute("pageTitle", "Verify Gmail Code - BookStore");
+            request.setAttribute("registerSuccess", true);
+            request.setAttribute("registeredEmail", pendingUser != null ? pendingUser.getEmail() : email);
+            request.setAttribute("errorMessage", "Database error occurred while saving your verified account: " + ex.getMessage());
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
         }
     }
 
     /**
-     * Handles Resend Activation Email: resendActivation(email).
+     * Handles Resend 6-Digit OTP Email: resendActivation(email).
      */
     protected void resendActivation(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String email = request.getParameter("email");
-        request.setAttribute("registeredEmail", email);
+        HttpSession session = request.getSession(false);
+        User pendingUser = (session != null) ? (User) session.getAttribute(SESSION_PENDING_REG_USER) : null;
+
+        String targetEmail = (pendingUser != null) ? pendingUser.getEmail() : email;
+        request.setAttribute("registeredEmail", targetEmail);
         request.setAttribute("registerSuccess", true);
-        request.setAttribute("pageTitle", "Verify Email - BookStore");
+        request.setAttribute("pageTitle", "Verify Gmail Code - BookStore");
 
         String baseUrl = getApplicationBaseUrl(request);
 
         try {
-            String newToken = authService.resendActivation(email, baseUrl);
-            request.setAttribute("verificationToken", newToken);
+            if (pendingUser != null) {
+                authService.resendOtpForPendingUser(pendingUser, baseUrl);
+                session.setAttribute(SESSION_PENDING_REG_USER, pendingUser);
+            } else {
+                authService.resendActivation(email, baseUrl);
+            }
             request.setAttribute("resendSuccess", true);
-            request.setAttribute("successMessage", "A new activation link has been sent to your email inbox.");
+            request.setAttribute("successMessage", "Mã xác thực 6 chữ số mới đã được gửi tới " + targetEmail + ".");
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
         } catch (ValidationException | EmailDeliveryException ex) {
@@ -221,7 +262,7 @@ public class AuthController extends HttpServlet {
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
 
         } catch (SQLException ex) {
-            request.setAttribute("errorMessage", "Database error occurred while resending activation email.");
+            request.setAttribute("errorMessage", "Database error occurred while resending verification code.");
             request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
         }
     }
