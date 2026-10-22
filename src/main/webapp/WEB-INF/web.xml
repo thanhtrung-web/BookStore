@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
          http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
          version="4.0"
-         metadata-complete="true">
+         metadata-complete="false">
 
     <display-name>BookStore Management System</display-name>
 
@@ -23,6 +23,12 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <!-- Static Resources Mapping (Images, CSS, JS) -->
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>/static/*</url-pattern>
+    </servlet-mapping>
+
     <!-- HomeController Servlet -->
     <servlet>
         <servlet-name>HomeController</servlet-name>
@@ -31,7 +37,21 @@
     <servlet-mapping>
         <servlet-name>HomeController</servlet-name>
         <url-pattern>/home</url-pattern>
-        <url-pattern>/</url-pattern>
+        <url-pattern></url-pattern>
+    </servlet-mapping>
+
+    <!-- AuthController Servlet (UC-01 Register, UC-02 Login, UC-03 Logout) -->
+    <servlet>
+        <servlet-name>AuthController</servlet-name>
+        <servlet-class>com.bookstore.controller.AuthController</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AuthController</servlet-name>
+        <url-pattern>/login</url-pattern>
+        <url-pattern>/register</url-pattern>
+        <url-pattern>/verify-email</url-pattern>
+        <url-pattern>/resend-activation</url-pattern>
+        <url-pattern>/logout</url-pattern>
     </servlet-mapping>
 
     <!-- Welcome File -->
@@ -39,9 +59,9 @@
         <welcome-file>home</welcome-file>
     </welcome-file-list>
 
-    <!-- Session Configuration -->
+    <!-- Session Configuration (60 minutes per UC-02 Sequence Diagram) -->
     <session-config>
-        <session-timeout>30</session-timeout>
+        <session-timeout>60</session-timeout>
         <tracking-mode>COOKIE</tracking-mode>
     </session-config>
 
