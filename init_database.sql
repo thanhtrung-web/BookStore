@@ -40,7 +40,7 @@ CREATE TABLE dbo.users (
     avatar_url VARCHAR(500) NULL,
     gender NVARCHAR(10) NULL,
     dob DATE NULL,
-    google_id VARCHAR(100) NULL UNIQUE,
+    google_id VARCHAR(100) NULL,
     auth_provider VARCHAR(20) NOT NULL DEFAULT 'LOCAL',
     email_verification_token VARCHAR(255) NULL,
     is_email_verified BIT NOT NULL DEFAULT 0,
@@ -51,6 +51,15 @@ CREATE TABLE dbo.users (
     created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
     updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
 );
+GO
+
+-- Filtered Unique Index cho google_id (cho phép nhiều dòng NULL khi đăng ký bằng Email LOCAL)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_users_google_id' AND object_id = OBJECT_ID('dbo.users'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_users_google_id
+    ON dbo.users(google_id)
+    WHERE google_id IS NOT NULL;
+END
 GO
 
 -- 1.3. Bảng user_roles (Phân quyền Người dùng - Vai trò)
@@ -394,7 +403,7 @@ CREATE TABLE dbo.payment_transactions (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
     order_id BIGINT NOT NULL,
     payment_method VARCHAR(20) NOT NULL,
-    transaction_code VARCHAR(100) NULL UNIQUE,
+    transaction_code VARCHAR(100) NULL,
     gateway_transaction_no VARCHAR(100) NULL,
     amount DECIMAL(18,2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
@@ -403,6 +412,15 @@ CREATE TABLE dbo.payment_transactions (
     created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
     CONSTRAINT FK_payment_order FOREIGN KEY (order_id) REFERENCES dbo.orders(id) ON DELETE CASCADE
 );
+GO
+
+-- Filtered Unique Index cho transaction_code (cho phép nhiều dòng NULL đối với đơn COD)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_payment_transactions_code' AND object_id = OBJECT_ID('dbo.payment_transactions'))
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_payment_transactions_code
+    ON dbo.payment_transactions(transaction_code)
+    WHERE transaction_code IS NOT NULL;
+END
 GO
 
 -- 5.2. Bảng shipping_orders (Vận đơn giao hàng)
