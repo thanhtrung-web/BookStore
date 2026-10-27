@@ -329,4 +329,67 @@ public class UserDAO {
         user.setUpdatedAt(rs.getTimestamp("updated_at"));
         return user;
     }
+
+
+    /**
+     * Retrieves all non-deleted user accounts for the admin user management page.
+     *
+     * @return a list of user accounts ordered by creation date
+     * @throws SQLException if a database error occurs
+     */
+    public List<User> findAllUsers() throws SQLException {
+        String sql = "SELECT id, email, full_name, phone_number, status, "
+                + "is_email_verified, created_at "
+                + "FROM dbo.users "
+                + "WHERE is_deleted = 0 "
+                + "ORDER BY created_at DESC";
+
+        List<User> users = new ArrayList<>();
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                User user = new User();
+                user.setId(rs.getLong("id"));
+                user.setEmail(rs.getString("email"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhoneNumber(rs.getString("phone_number"));
+                user.setStatus(rs.getString("status"));
+                user.setEmailVerified(rs.getBoolean("is_email_verified"));
+                user.setCreatedAt(rs.getTimestamp("created_at"));
+                users.add(user);
+            }
+        }
+
+        return users;
+    }
+
+    /**
+     * Updates the status of a non-deleted user account.
+     *
+     * @param userId the ID of the account to update
+     * @param status the new account status, ACTIVE or LOCKED
+     * @return true if an account was updated
+     * @throws SQLException if a database error occurs
+     */
+    public boolean updateUserStatus(long userId, String status) throws SQLException {
+        if (!"ACTIVE".equals(status) && !"LOCKED".equals(status)) {
+            throw new IllegalArgumentException("Unsupported account status.");
+        }
+
+        String sql = "UPDATE dbo.users "
+                + "SET status = ?, updated_at = GETDATE() "
+                + "WHERE id = ? AND is_deleted = 0";
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, status);
+            ps.setLong(2, userId);
+
+            return ps.executeUpdate() == 1;
+        }
+    }
 }
