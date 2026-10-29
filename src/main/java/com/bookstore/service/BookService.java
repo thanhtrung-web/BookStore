@@ -44,4 +44,34 @@ public class BookService {
 
         return bookDAO.getBookById(id);
     }
+
+    
+    // Count search results
+    public int countSearchBooks(String keyword) throws SQLException {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return 0;
+        }
+
+        return bookDAO.countSearchBooks(keyword.trim());
+    }
+
+    // Search books by keyword with pagination
+    public List<Book> searchBooks(
+            String keyword, int page, int pageSize) throws SQLException {
+
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        if (page < 1) {
+            page = 1;
+        }
+
+        if (pageSize < 1) {
+            pageSize = 10;
+        }
+
+        return bookDAO.searchBooks(keyword.trim(), page, pageSize);
+    }
+
 }
