@@ -106,6 +106,70 @@ public class BookDAO {
         return 0;
     }
 
+    
+public Book getBookById(long id) throws SQLException {
+    String sql =
+            "SELECT b.id, b.title, b.isbn, b.publisher_id, " +
+            "b.publication_year, b.edition, b.price, " +
+            "b.discount_percent, b.description, b.page_count, " +
+            "b.dimensions, b.weight_grams, b.cover_type, " +
+            "b.language, b.status, b.is_deleted, " +
+            "b.created_at, b.updated_at, " +
+            "p.name AS publisher_name, " +
+            "bi.image_url AS image_url " +
+            "FROM books b " +
+            "LEFT JOIN publishers p ON b.publisher_id = p.id " +
+            "LEFT JOIN book_images bi ON b.id = bi.book_id " +
+            "AND bi.is_thumbnail = 1 " +
+            "WHERE b.id = ? AND b.is_deleted = 0";
+
+    try (Connection conn = DBContext.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setLong(1, id);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                Book book = new Book();
+
+                book.setId(rs.getLong("id"));
+                book.setTitle(rs.getString("title"));
+                book.setIsbn(rs.getString("isbn"));
+                book.setPublisherId(rs.getLong("publisher_id"));
+                book.setPublisherName(rs.getString("publisher_name"));
+
+                book.setPublicationYear(
+                        (Integer) rs.getObject("publication_year"));
+                book.setEdition(
+                        (Integer) rs.getObject("edition"));
+
+                book.setPrice(rs.getBigDecimal("price"));
+                book.setDiscountPercent(
+                        rs.getInt("discount_percent"));
+                book.setDescription(rs.getString("description"));
+
+                book.setPageCount(
+                        (Integer) rs.getObject("page_count"));
+                book.setDimensions(rs.getString("dimensions"));
+                book.setWeightGrams(
+                        (Integer) rs.getObject("weight_grams"));
+                book.setCoverType(rs.getString("cover_type"));
+
+                book.setLanguage(rs.getString("language"));
+                book.setStatus(rs.getString("status"));
+                book.setDeleted(rs.getBoolean("is_deleted"));
+
+                book.setImageUrl(rs.getString("image_url"));
+
+                return book;
+            }
+        }
+    }
+
+    return null;
+}
+
+
     public static void main(String[] args) throws Exception {
         BookDAO test = new BookDAO();
 
@@ -130,6 +194,7 @@ public class BookDAO {
                             +"anh" + b.getImageUrl()
                             + " | Price: " + b.getPrice());
         }
+        System.out.println(test.getBookById(1));
     }
 
 }
