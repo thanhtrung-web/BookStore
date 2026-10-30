@@ -68,12 +68,21 @@
     <servlet>
     <servlet-name>CartController</servlet-name>
     <servlet-class>com.bookstore.controller.CartController</servlet-class>
-</servlet>
+    </servlet>
 
-<servlet-mapping>
+    <servlet-mapping>
     <servlet-name>CartController</servlet-name>
     <url-pattern>/cart</url-pattern>
     <url-pattern>/cart/add</url-pattern>
-</servlet-mapping>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>OrderController</servlet-name>
+        <servlet-class>com.bookstore.controller.OrderController</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>OrderController</servlet-name>
+        <url-pattern>/order/checkout</url-pattern>
+    </servlet-mapping>
 
 </web-app>
