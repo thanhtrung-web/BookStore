@@ -307,6 +307,98 @@ public class UserDAO {
         }
     }
 
+    /**
+     * Finds a user by ID together with all assigned roles (UC-43 View Own Profile, UC-05 Change Password).
+     */
+    public User findById(long id) throws SQLException {
+        String sql = "SELECT u.*, r.id AS role_id, r.role_name, r.description AS role_description "
+                + "FROM dbo.users u "
+                + "LEFT JOIN dbo.user_roles ur ON u.id = ur.user_id "
+                + "LEFT JOIN dbo.roles r ON ur.role_id = r.id "
+                + "WHERE u.id = ? AND u.is_deleted = 0";
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setLong(1, id);
+            rs = ps.executeQuery();
+
+            User user = null;
+            List<Role> roles = new ArrayList<>();
+
+            while (rs.next()) {
+                if (user == null) {
+                    user = mapUserRow(rs);
+                }
+                long roleId = rs.getLong("role_id");
+                if (!rs.wasNull()) {
+                    Role role = new Role(
+                            roleId,
+                            rs.getString("role_name"),
+                            rs.getString("role_description")
+                    );
+                    roles.add(role);
+                }
+            }
+
+            if (user != null) {
+                user.setRoles(roles);
+            }
+            return user;
+        } finally {
+            DBContext.close(conn, ps, rs);
+        }
+    }
+
+    /**
+     * Updates user's personal profile information in dbo.users (UC-44 Update Own Profile).
+     */
+    public boolean updateProfile(User user) throws SQLException {
+        String sql = "UPDATE dbo.users "
+                + "SET full_name = ?, phone_number = ?, gender = ?, dob = ?, avatar_url = ?, updated_at = GETDATE() "
+                + "WHERE id = ? AND is_deleted = 0";
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getPhoneNumber());
+            ps.setString(3, user.getGender());
+            ps.setDate(4, user.getDob());
+            ps.setString(5, user.getAvatarUrl());
+            ps.setLong(6, user.getId());
+            return ps.executeUpdate() > 0;
+        } finally {
+            DBContext.close(conn, ps, null);
+        }
+    }
+
+    /**
+     * Updates user's BCrypt password hash in dbo.users (UC-05 Change Password).
+     */
+    public boolean updatePassword(long userId, String newPasswordHash) throws SQLException {
+        String sql = "UPDATE dbo.users "
+                + "SET password_hash = ?, updated_at = GETDATE() "
+                + "WHERE id = ? AND is_deleted = 0";
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, newPasswordHash);
+            ps.setLong(2, userId);
+            return ps.executeUpdate() > 0;
+        } finally {
+            DBContext.close(conn, ps, null);
+        }
+    }
+
     private User mapUserRow(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getLong("id"));
