@@ -82,7 +82,7 @@
         <!-- Right Quick Actions & Admin View Switcher -->
         <div class="flex items-center gap-3">
             <!-- Link to Admin Portal -->
-            <a href="${pageContext.request.contextPath}/views/admin/dashboard.jsp" class="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
+            <a href="${pageContext.request.contextPath}/dashboard/admin" class="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
                 <span>👑</span>
                 <span>Open Admin Portal</span>
             </a>
@@ -196,7 +196,7 @@
                 <div class="font-bold text-slate-700">Staff Shift: Active</div>
                 <p>Operational access only (No access to user credentials or system financial tax settings).</p>
                 <div class="pt-1">
-                    <a href="${pageContext.request.contextPath}/logout" class="text-xs font-bold text-rose-600 hover:underline">Sign Out</a>
+                    <a href="${pageContext.request.contextPath}/dashboard/logout" class="text-xs font-bold text-rose-600 hover:underline">Sign Out</a>
                 </div>
             </div>
         </aside>

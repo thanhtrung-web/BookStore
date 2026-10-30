@@ -15,9 +15,12 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 /**
- * AuthFilter («filter» :AuthFilter) - Role-Based Access Control (RBAC) Filter for TSK-06 (BR-03).
- * Protects authenticated user routes (/profile, /change-password, /checkout, /orders, /wishlist)
- * and administrative routes (/admin/*, /staff/*, /inventory/*).
+ * AuthFilter («filter» :AuthFilter) - Role-Based Access Control (RBAC) & Security Filter.
+ * Protects:
+ *  - Traps and prevents direct client access to internal JSP views (/views/admin/*, /views/staff/*, etc.)
+ *  - Administrative & Staff Routes (/dashboard/admin/*, /dashboard/staff/*) -> strictly requires ADMIN/STAFF
+ *  - Unauthorized attempts to access admin/staff URLs are silently redirected to Buyer /login
+ *  - Authenticated Buyer routes (/profile, /change-password, /checkout, /orders, /wishlist)
  */
 @WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
 public class AuthFilter implements Filter {
@@ -46,48 +49,55 @@ public class AuthFilter implements Filter {
 
         HttpSession session = httpReq.getSession(false);
         User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
+        Object userRole = (session != null) ? session.getAttribute("userRole") : null;
 
-        // 2. Redirect already-logged-in users away from GET /login or GET /register
+        // 2. Trap direct client attempts to browse internal JSP views
+        // Redirect directly to /login so the existence of dashboard is never disclosed
+        if (path.startsWith("/views/admin/") || path.startsWith("/views/staff/")) {
+            httpResp.sendRedirect(contextPath + "/login");
+            return;
+        }
+
+        // 3. Prevent already-logged-in buyers from visiting GET /login or GET /register
         if (authUser != null && "GET".equalsIgnoreCase(httpReq.getMethod())
                 && ("/login".equals(path) || "/register".equals(path))) {
             httpResp.sendRedirect(contextPath + "/home");
             return;
         }
 
-        // 3. Protect authenticated user routes (/profile, /change-password, /checkout, /orders, /wishlist)
-        if (isAuthenticatedRoute(path)) {
-            if (authUser == null) {
+        // 4. Portal login endpoints (/dashboard, /dashboard/logout) are publicly accessible to staff/admin
+        if ("/dashboard".equals(path) || "/dashboard/logout".equals(path)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 5. Admin Routes (/dashboard/admin, /dashboard/admin/*)
+        // If not authenticated or not ADMIN, redirect to Buyer /login (hiding dashboard presence)
+        if (path.equals("/dashboard/admin") || path.startsWith("/dashboard/admin/")) {
+            if (authUser == null || (!authUser.hasRole("ADMIN") && !"ADMIN".equals(userRole))) {
                 httpResp.sendRedirect(contextPath + "/login");
                 return;
             }
         }
 
-        // 4. Role-Based Access Control (BR-03) for /admin/*, /staff/*, /inventory/*
-        if (path.startsWith("/admin")) {
-            if (authUser == null) {
+        // 6. Staff Routes (/dashboard/staff, /dashboard/staff/*)
+        // If not authenticated or neither STAFF nor ADMIN, redirect to Buyer /login
+        if (path.equals("/dashboard/staff") || path.startsWith("/dashboard/staff/")) {
+            boolean isStaffOrAdmin = authUser != null && (authUser.hasRole("ADMIN")
+                    || authUser.hasRole("STAFF")
+                    || authUser.hasRole("INVENTORY_STAFF")
+                    || "ADMIN".equals(userRole)
+                    || "STAFF".equals(userRole));
+            if (!isStaffOrAdmin) {
                 httpResp.sendRedirect(contextPath + "/login");
                 return;
             }
-            if (!authUser.hasRole("ADMIN") && !authUser.hasRole("STAFF")) {
-                httpResp.sendRedirect(contextPath + "/home?error=access_denied");
-                return;
-            }
-        } else if (path.startsWith("/staff")) {
+        }
+
+        // 7. Protect customer authenticated routes (/profile, /change-password, /checkout, /orders, /wishlist)
+        if (isAuthenticatedBuyerRoute(path)) {
             if (authUser == null) {
                 httpResp.sendRedirect(contextPath + "/login");
-                return;
-            }
-            if (!authUser.hasRole("ADMIN") && !authUser.hasRole("STAFF")) {
-                httpResp.sendRedirect(contextPath + "/home?error=access_denied");
-                return;
-            }
-        } else if (path.startsWith("/inventory")) {
-            if (authUser == null) {
-                httpResp.sendRedirect(contextPath + "/login");
-                return;
-            }
-            if (!authUser.hasRole("ADMIN") && !authUser.hasRole("INVENTORY_STAFF") && !authUser.hasRole("STAFF")) {
-                httpResp.sendRedirect(contextPath + "/home?error=access_denied");
                 return;
             }
         }
@@ -95,7 +105,7 @@ public class AuthFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private boolean isAuthenticatedRoute(String path) {
+    private boolean isAuthenticatedBuyerRoute(String path) {
         return path.equals("/profile")
                 || path.startsWith("/profile/")
                 || path.equals("/change-password")
