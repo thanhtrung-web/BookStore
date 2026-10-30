@@ -16,44 +16,44 @@
                         <span class="text-lg font-extrabold text-blue-600">Book<span class="text-slate-800">Store</span></span>
                     </div>
                     <p class="text-slate-400 text-xs leading-relaxed max-w-sm">
-                        Read More • Grow More. Nền tảng mua sắm sách trực tuyến hàng đầu, kết nối hàng triệu độc giả với tri thức nhân loại.
+                        Read More • Grow More. Premier online bookstore connecting millions of avid readers with curated literature and knowledge.
                     </p>
                     <div class="pt-2 text-[11px] text-slate-400">
-                        <strong>Dự án:</strong> SWD392 - Nhóm PS06 | Kiến trúc 3-Tier Layered
+                        <strong>Project:</strong> SWD392 - Team PS06 | 3-Tier Layered Architecture
                     </div>
                 </div>
 
-                <!-- Col 2: Về BookStore -->
+                <!-- Col 2: About BookStore -->
                 <div class="space-y-2.5">
-                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Về BookStore</h4>
+                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">About BookStore</h4>
                     <ul class="space-y-2">
-                        <li><a href="${pageContext.request.contextPath}/about" class="hover:text-blue-600 transition">Giới thiệu</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Tuyển dụng</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Liên hệ</a></li>
+                        <li><a href="${pageContext.request.contextPath}/about" class="hover:text-blue-600 transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Careers</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Contact Us</a></li>
                     </ul>
                 </div>
 
-                <!-- Col 3: Chính sách -->
+                <!-- Col 3: Policies -->
                 <div class="space-y-2.5">
-                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Chính sách</h4>
+                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Policies</h4>
                     <ul class="space-y-2">
-                        <li><a href="#" class="hover:text-blue-600 transition">Chính sách bảo mật</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Chính sách đổi trả</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Điều khoản sử dụng</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Return & Refund Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Terms of Service</a></li>
                     </ul>
                 </div>
 
-                <!-- Col 4: Hỗ trợ & Mạng xã hội -->
+                <!-- Col 4: Customer Support & Social -->
                 <div class="space-y-3">
-                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Hỗ trợ</h4>
+                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Customer Support</h4>
                     <ul class="space-y-2">
-                        <li><a href="#" class="hover:text-blue-600 transition">Trung tâm trợ giúp</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Hướng dẫn mua hàng</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition">Câu hỏi thường gặp</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">How to Order</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition">FAQs</a></li>
                     </ul>
 
                     <div class="pt-2 space-y-1.5">
-                        <span class="block text-[11px] font-semibold text-slate-700">Kết nối với chúng tôi</span>
+                        <span class="block text-[11px] font-semibold text-slate-700">Connect With Us</span>
                         <div class="flex items-center gap-2.5 text-base">
                             <a href="#" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 flex items-center justify-center transition">📘</a>
                             <a href="#" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition">📸</a>
