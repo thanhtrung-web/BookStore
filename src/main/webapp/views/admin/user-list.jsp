@@ -188,7 +188,7 @@
         </div>
 
         <a class="back-link"
-           href="${pageContext.request.contextPath}/">
+           href="${pageContext.request.contextPath}/dashboard/admin">
             Back to Home
         </a>
     </div>
@@ -292,7 +292,7 @@
                                         <c:when test="${user.status eq 'ACTIVE'}">
                                             <form class="action-form"
                                                   method="post"
-                                                  action="${pageContext.request.contextPath}/admin/users"
+                                                  action="${pageContext.request.contextPath}/dashboard/admin/users"
                                                   onsubmit="return confirm('Lock this user account?');">
 
                                                 <input type="hidden"
@@ -313,7 +313,7 @@
                                         <c:when test="${user.status eq 'LOCKED'}">
                                             <form class="action-form"
                                                   method="post"
-                                                  action="${pageContext.request.contextPath}/admin/users"
+                                                  action="${pageContext.request.contextPath}/dashboard/admin/users"
                                                   onsubmit="return confirm('Unlock this user account?');">
 
                                                 <input type="hidden"

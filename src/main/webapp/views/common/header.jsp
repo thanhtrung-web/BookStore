@@ -169,13 +169,13 @@
                                     </a>
                                     <c:if test="${sessionScope.userRole == 'ADMIN'}">
                                         <div class="my-1 border-t border-slate-100"></div>
-                                        <a href="${pageContext.request.contextPath}/views/admin/dashboard.jsp" class="flex items-center gap-2.5 px-4 py-2 hover:bg-purple-50 hover:text-purple-600 transition font-bold text-purple-700">
+                                        <a href="${pageContext.request.contextPath}/dashboard/admin" class="flex items-center gap-2.5 px-4 py-2 hover:bg-purple-50 hover:text-purple-600 transition font-bold text-purple-700">
                                             <span>👑</span> <span>Admin Console</span>
                                         </a>
                                     </c:if>
                                     <c:if test="${sessionScope.userRole == 'STAFF' || sessionScope.userRole == 'INVENTORY_STAFF'}">
                                         <div class="my-1 border-t border-slate-100"></div>
-                                        <a href="${pageContext.request.contextPath}/views/staff/dashboard.jsp" class="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-50 hover:text-emerald-600 transition font-bold text-emerald-700">
+                                        <a href="${pageContext.request.contextPath}/dashboard/staff" class="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-50 hover:text-emerald-600 transition font-bold text-emerald-700">
                                             <span>💼</span> <span>Staff Workspace</span>
                                         </a>
                                     </c:if>

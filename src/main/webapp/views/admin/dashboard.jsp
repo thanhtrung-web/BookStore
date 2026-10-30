@@ -82,7 +82,7 @@
         <!-- Right Quick Actions & Storefront Link -->
         <div class="flex items-center gap-3">
             <!-- Link to Staff View -->
-            <a href="${pageContext.request.contextPath}/views/staff/dashboard.jsp" class="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
+            <a href="${pageContext.request.contextPath}/dashboard/staff" class="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white font-bold px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition">
                 <span>💼</span>
                 <span>Open Staff Portal</span>
             </a>
@@ -219,7 +219,7 @@
             <!-- Sidebar Footer -->
             <div class="p-4 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-[11px] font-semibold text-slate-400">Database: Active</span>
-                <a href="${pageContext.request.contextPath}/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline">Sign Out</a>
+                <a href="${pageContext.request.contextPath}/dashboard/logout" class="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline">Sign Out</a>
             </div>
         </aside>
 

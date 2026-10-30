@@ -2,13 +2,13 @@ package com.bookstore.controller;
 
 import com.bookstore.model.User;
 import com.bookstore.service.AuthService;
-import com.bookstore.service.LogoutHandler;
 import com.bookstore.service.AuthService.AccountNotActiveException;
 import com.bookstore.service.AuthService.BadCredentialsException;
 import com.bookstore.service.AuthService.EmailExistsException;
 import com.bookstore.service.AuthService.InvalidTokenException;
 import com.bookstore.service.AuthService.ValidationException;
 import com.bookstore.service.EmailService.EmailDeliveryException;
+import com.bookstore.service.LogoutHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -24,14 +24,16 @@ import java.util.Map;
 
 /**
  * AuthController («controller» :AuthController) - Presentation Controller Layer
- * for UC-01 Register, UC-02 Login, and UC-03 Logout.
+ * for UC-01 Register, UC-02 Login, UC-03 Logout, and Management Portal Authentication (/dashboard).
  */
 @WebServlet(name = "AuthController", urlPatterns = {
         "/login",
         "/register",
         "/verify-email",
         "/resend-activation",
-        "/logout"
+        "/logout",
+        "/dashboard",
+        "/dashboard/logout"
 })
 public class AuthController extends HttpServlet {
 
@@ -65,6 +67,12 @@ public class AuthController extends HttpServlet {
             case "/logout":
                 logout(request, response);
                 break;
+            case "/dashboard/logout":
+                logoutDashboard(request, response);
+                break;
+            case "/dashboard":
+                showDashboardLoginPage(request, response);
+                break;
             case "/login":
             default:
                 showLoginPage(request, response);
@@ -90,6 +98,12 @@ public class AuthController extends HttpServlet {
             case "/logout":
                 logout(request, response);
                 break;
+            case "/dashboard/logout":
+                logoutDashboard(request, response);
+                break;
+            case "/dashboard":
+                loginDashboard(request, response);
+                break;
             case "/login":
             default:
                 login(request, response);
@@ -107,7 +121,7 @@ public class AuthController extends HttpServlet {
     }
 
     /**
-     * Displays the Login page (:LoginPage).
+     * Displays the Login page (:LoginPage) for Customers/Buyers.
      */
     private void showLoginPage(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -130,6 +144,27 @@ public class AuthController extends HttpServlet {
         }
 
         request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+    }
+
+    /**
+     * Displays the Dedicated Login page for Staff and Administrators (/dashboard).
+     */
+    private void showDashboardLoginPage(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
+
+        if (authUser != null) {
+            if (authUser.hasRole("ADMIN")) {
+                response.sendRedirect(request.getContextPath() + "/dashboard/admin");
+                return;
+            } else if (authUser.hasRole("STAFF") || authUser.hasRole("INVENTORY_STAFF")) {
+                response.sendRedirect(request.getContextPath() + "/dashboard/staff");
+                return;
+            }
+        }
+
+        request.getRequestDispatcher("/views/admin/login.jsp").forward(request, response);
     }
 
     /**
@@ -271,7 +306,8 @@ public class AuthController extends HttpServlet {
     }
 
     /**
-     * Handles Login submission: login(email, password, rememberMe).
+     * Handles Customer / Buyer Login submission at /login.
+     * Strictly authenticates only BUYER accounts. Admin/Staff credentials yield standard error.
      */
     protected void login(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -304,11 +340,22 @@ public class AuthController extends HttpServlet {
         try {
             User authenticatedUser = authService.authenticate(email, password);
 
+            // /login strictly accepts BUYER accounts!
+            // If user has ADMIN or STAFF role and not BUYER, reject with generic error message
+            boolean isStaffOrAdmin = authenticatedUser.hasRole("ADMIN")
+                    || authenticatedUser.hasRole("STAFF")
+                    || authenticatedUser.hasRole("INVENTORY_STAFF");
+            if (isStaffOrAdmin && !authenticatedUser.hasRole("BUYER")) {
+                request.setAttribute("errorMessage", "Invalid email or password.");
+                request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+                return;
+            }
+
             // Create HTTP Session (JSESSIONID, timeout = 60 min)
             HttpSession session = request.getSession(true);
             session.setMaxInactiveInterval(SESSION_TIMEOUT_SECONDS);
             session.setAttribute("authUser", authenticatedUser);
-            session.setAttribute("userRole", authenticatedUser.getPrimaryRole());
+            session.setAttribute("userRole", "BUYER");
 
             // opt [rememberMe is checked]
             Cookie emailCookie = new Cookie("rememberedEmail", rememberMe ? authenticatedUser.getEmail() : "");
@@ -317,18 +364,10 @@ public class AuthController extends HttpServlet {
             emailCookie.setMaxAge(rememberMe ? REMEMBER_ME_COOKIE_AGE : 0);
             response.addCookie(emailCookie);
 
-            // Redirect based on role (ADMIN/STAFF -> Admin Dashboard or Home; BUYER -> Home)
-            String primaryRole = authenticatedUser.getPrimaryRole();
-            if ("ADMIN".equalsIgnoreCase(primaryRole)
-                    || "STAFF".equalsIgnoreCase(primaryRole)
-                    || "INVENTORY_STAFF".equalsIgnoreCase(primaryRole)) {
-                response.sendRedirect(request.getContextPath() + "/home");
-            } else {
-                response.sendRedirect(request.getContextPath() + "/home");
-            }
+            response.sendRedirect(request.getContextPath() + "/home");
 
         } catch (BadCredentialsException ex) {
-            request.setAttribute("errorMessage", ex.getMessage());
+            request.setAttribute("errorMessage", "Invalid email or password.");
             request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
 
         } catch (AccountNotActiveException ex) {
@@ -343,12 +382,71 @@ public class AuthController extends HttpServlet {
     }
 
     /**
-     * Handles Logout: invalidates active HTTP session via LogoutHandler (UC-03) and redirects to Home.
+     * Handles Management Portal Login at /dashboard.
+     * Strictly authenticates ADMIN and STAFF accounts. Non-staff accounts yield standard error.
+     */
+    private void loginDashboard(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+
+        if (email == null || email.trim().isEmpty() || password == null || password.isEmpty()) {
+            request.setAttribute("errorMessage", "Invalid email or password.");
+            request.getRequestDispatcher("/views/admin/login.jsp").forward(request, response);
+            return;
+        }
+
+        try {
+            User authenticatedUser = authService.authenticate(email.trim(), password);
+
+            boolean isAdmin = authenticatedUser.hasRole("ADMIN");
+            boolean isStaff = authenticatedUser.hasRole("STAFF") || authenticatedUser.hasRole("INVENTORY_STAFF");
+
+            if (!isAdmin && !isStaff) {
+                // Return generic error message to prevent account probing
+                request.setAttribute("errorMessage", "Invalid email or password.");
+                request.getRequestDispatcher("/views/admin/login.jsp").forward(request, response);
+                return;
+            }
+
+            HttpSession session = request.getSession(true);
+            session.setMaxInactiveInterval(SESSION_TIMEOUT_SECONDS);
+            session.setAttribute("authUser", authenticatedUser);
+            session.setAttribute("userRole", isAdmin ? "ADMIN" : "STAFF");
+
+            if (isAdmin) {
+                response.sendRedirect(request.getContextPath() + "/dashboard/admin");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/dashboard/staff");
+            }
+
+        } catch (BadCredentialsException | AccountNotActiveException ex) {
+            request.setAttribute("errorMessage", "Invalid email or password.");
+            request.getRequestDispatcher("/views/admin/login.jsp").forward(request, response);
+
+        } catch (SQLException ex) {
+            request.setAttribute("errorMessage", "Database connection error occurred: " + ex.getMessage());
+            request.getRequestDispatcher("/views/admin/login.jsp").forward(request, response);
+        }
+    }
+
+    /**
+     * Handles Customer Logout: invalidates active HTTP session via LogoutHandler (UC-03) and redirects to Home.
      */
     protected void logout(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         logoutHandler.logout(request);
         response.sendRedirect(request.getContextPath() + "/home?logout=true");
+    }
+
+    /**
+     * Handles Management Portal Logout: invalidates active HTTP session and redirects to /dashboard.
+     */
+    protected void logoutDashboard(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        logoutHandler.logout(request);
+        response.sendRedirect(request.getContextPath() + "/dashboard");
     }
 
     private String getApplicationBaseUrl(HttpServletRequest request) {

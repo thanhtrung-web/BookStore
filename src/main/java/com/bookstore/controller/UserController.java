@@ -23,19 +23,23 @@ import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 
 /**
- * Controller for User Management (Customer Profile, Password Change, and Administrator Console).
+ * Controller for User Management (Customer Profile, Password Change, and Management Dashboards).
  * Handles:
- *  - GET  /profile         -> UC-43 View Own Profile
- *  - POST /profile         -> UC-44 Update Own Profile
- *  - GET  /change-password -> UC-05 View Change Password Tab
- *  - POST /change-password -> UC-05 Submit Password Change
- *  - GET  /admin/users     -> Administrator View All Users
- *  - POST /admin/users     -> Administrator Lock / Unlock User Status
+ *  - GET  /profile               -> UC-43 View Own Profile
+ *  - POST /profile               -> UC-44 Update Own Profile
+ *  - GET  /change-password       -> UC-05 View Change Password Tab
+ *  - POST /change-password       -> UC-05 Submit Password Change
+ *  - GET  /dashboard/admin       -> Administrator Portal Dashboard
+ *  - GET  /dashboard/staff       -> Staff Workspace Dashboard
+ *  - GET  /dashboard/admin/users -> Administrator View All Users
+ *  - POST /dashboard/admin/users -> Administrator Lock / Unlock User Status
  */
 @WebServlet(name = "UserController", urlPatterns = {
         "/profile",
         "/change-password",
-        "/admin/users"
+        "/dashboard/admin",
+        "/dashboard/staff",
+        "/dashboard/admin/users"
 })
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024,      // 1 MB
@@ -46,6 +50,9 @@ public class UserController extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     private static final String PROFILE_VIEW = "/views/account/profile.jsp";
+    private static final String ADMIN_DASHBOARD_VIEW = "/views/admin/dashboard.jsp";
+    private static final String STAFF_DASHBOARD_VIEW = "/views/staff/dashboard.jsp";
+    private static final String ADMIN_USERS_VIEW = "/views/admin/user-list.jsp";
 
     private UserService userService;
 
@@ -60,13 +67,37 @@ public class UserController extends HttpServlet {
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
 
-        // 1. Admin user management endpoint
-        if ("/admin/users".equals(servletPath)) {
+        // 1. Admin Portal Dashboard
+        if ("/dashboard/admin".equals(servletPath)) {
+            if (!isAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
+            request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW).forward(request, response);
+            return;
+        }
+
+        // 2. Staff Workspace Dashboard
+        if ("/dashboard/staff".equals(servletPath)) {
+            if (!isStaffOrAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
+            request.getRequestDispatcher(STAFF_DASHBOARD_VIEW).forward(request, response);
+            return;
+        }
+
+        // 3. Admin user management list
+        if ("/dashboard/admin/users".equals(servletPath)) {
+            if (!isAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
             handleAdminListUsers(request, response);
             return;
         }
 
-        // 2. Customer profile & change password endpoints
+        // 4. Customer profile & change password endpoints
         HttpSession session = request.getSession(false);
         User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
         if (authUser == null) {
@@ -99,7 +130,11 @@ public class UserController extends HttpServlet {
         String servletPath = request.getServletPath();
 
         // 1. Admin update user status endpoint
-        if ("/admin/users".equals(servletPath)) {
+        if ("/dashboard/admin/users".equals(servletPath)) {
+            if (!isAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
             handleAdminUpdateUserStatus(request, response);
             return;
         }
@@ -121,19 +156,14 @@ public class UserController extends HttpServlet {
     }
 
     // =========================================================================
-    // Administrator Handlers (/admin/users)
+    // Administrator Handlers (/dashboard/admin/*)
     // =========================================================================
 
     private void handleAdminListUsers(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        if (!isAdmin(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
-
         try {
             request.setAttribute("users", userService.getAllUsers());
-            request.getRequestDispatcher("/views/admin/user-list.jsp").forward(request, response);
+            request.getRequestDispatcher(ADMIN_USERS_VIEW).forward(request, response);
         } catch (SQLException ex) {
             getServletContext().log("Failed to load user management page.", ex);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load user accounts.");
@@ -142,11 +172,6 @@ public class UserController extends HttpServlet {
 
     private void handleAdminUpdateUserStatus(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        if (!isAdmin(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
-
         String userIdValue = request.getParameter("userId");
         String status = request.getParameter("status");
 
@@ -168,7 +193,7 @@ public class UserController extends HttpServlet {
             boolean updated = userService.updateUserStatus(userId, status);
             String message = updated ? "User account status updated successfully." : "User account was not found.";
 
-            response.sendRedirect(request.getContextPath() + "/admin/users?message="
+            response.sendRedirect(request.getContextPath() + "/dashboard/admin/users?message="
                     + URLEncoder.encode(message, StandardCharsets.UTF_8.name()));
 
         } catch (IllegalArgumentException ex) {
@@ -194,6 +219,20 @@ public class UserController extends HttpServlet {
             }
         }
         return "ADMIN".equals(role);
+    }
+
+    private boolean isStaffOrAdmin(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return false;
+        }
+        Object authenticatedUser = session.getAttribute("authUser");
+        if (authenticatedUser instanceof User) {
+            User u = (User) authenticatedUser;
+            return u.hasRole("ADMIN") || u.hasRole("STAFF") || u.hasRole("INVENTORY_STAFF");
+        }
+        Object role = session.getAttribute("userRole");
+        return "ADMIN".equals(role) || "STAFF".equals(role);
     }
 
     // =========================================================================
