@@ -2,6 +2,7 @@ package com.bookstore.controller;
 
 import com.bookstore.model.User;
 import com.bookstore.service.AuthService;
+import com.bookstore.service.LogoutHandler;
 import com.bookstore.service.AuthService.AccountNotActiveException;
 import com.bookstore.service.AuthService.BadCredentialsException;
 import com.bookstore.service.AuthService.EmailExistsException;
@@ -40,11 +41,13 @@ public class AuthController extends HttpServlet {
     private static final String SESSION_PENDING_REG_USER = "pendingRegUser";
 
     private AuthService authService;
+    private LogoutHandler logoutHandler;
 
     @Override
     public void init() throws ServletException {
         super.init();
         this.authService = new AuthService();
+        this.logoutHandler = new LogoutHandler();
     }
 
     @Override
@@ -340,14 +343,11 @@ public class AuthController extends HttpServlet {
     }
 
     /**
-     * Handles Logout: invalidates active HTTP session and redirects to Home.
+     * Handles Logout: invalidates active HTTP session via LogoutHandler (UC-03) and redirects to Home.
      */
     protected void logout(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+        logoutHandler.logout(request);
         response.sendRedirect(request.getContextPath() + "/home?logout=true");
     }
 
