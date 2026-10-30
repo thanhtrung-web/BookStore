@@ -1,11 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${pageTitle != null ? pageTitle : 'Xác thực tài khoản Email - BookStore'}</title>
+    <title>${pageTitle != null ? pageTitle : 'Verify Email Account - BookStore'}</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -73,7 +73,7 @@
 
         <a href="${pageContext.request.contextPath}/login" class="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            <span>Quay lại Đăng nhập</span>
+            <span>Back to Sign In</span>
         </a>
     </header>
 
@@ -91,16 +91,16 @@
 
             <!-- Heading -->
             <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-2">
-                Xác thực tài khoản Email
+                Verify Email Account
             </h1>
 
             <p class="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-sm mx-auto mb-6">
-                Chúng tôi đã gửi mã xác thực kích hoạt tài khoản đến địa chỉ: <br>
+                We've sent a 6-digit verification code to: <br>
                 <strong class="text-blue-600 font-bold text-sm">
                     <c:choose>
                         <c:when test="${not empty registeredEmail}"><c:out value="${registeredEmail}"/></c:when>
                         <c:when test="${not empty param.email}"><c:out value="${param.email}"/></c:when>
-                        <c:otherwise>email của bạn</c:otherwise>
+                        <c:otherwise>your email address</c:otherwise>
                     </c:choose>
                 </strong>
             </p>
@@ -125,16 +125,9 @@
                 </div>
             </c:if>
 
-            <!-- Quick Demo Helper (if token exists in session/request) -->
-            <c:if test="${not empty verificationToken}">
-                <div class="mb-5 p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-left text-xs">
-                    <span class="font-bold text-blue-800">💡 Mã kích hoạt (Demo):</span>
-                    <span class="font-mono font-bold text-amber-700 select-all"><c:out value="${verificationToken}"/></span>
-                </div>
-            </c:if>
-
             <!-- OTP FORM -->
-            <form action="${pageContext.request.contextPath}/verify-email" method="GET" id="otpForm" class="space-y-6">
+            <form action="${pageContext.request.contextPath}/verify-email" method="POST" id="otpForm" class="space-y-6">
+                <input type="hidden" name="email" value="<c:out value='${registeredEmail != null ? registeredEmail : param.email}'/>" />
                 
                 <!-- 6 Digit Input Boxes -->
                 <div class="flex items-center justify-center gap-2 sm:gap-3">
@@ -148,11 +141,11 @@
                 </div>
 
                 <!-- Combined hidden input submitted to verify-email -->
-                <input type="hidden" name="token" id="fullToken" value="${verificationToken}" />
+                <input type="hidden" name="token" id="fullToken" value="" />
 
                 <!-- Submit Button -->
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm py-3.5 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
-                    <span>Xác nhận & Kích hoạt tài khoản</span>
+                    <span>Verify & Activate Account</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>
             </form>
@@ -161,14 +154,14 @@
             <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col items-center gap-2 text-xs">
                 <form action="${pageContext.request.contextPath}/resend-activation" method="POST" id="resendForm" class="flex items-center justify-center">
                     <input type="hidden" name="email" value="<c:out value='${registeredEmail != null ? registeredEmail : param.email}'/>">
-                    <span class="text-slate-500 mr-1">Chưa nhận được mã?</span>
+                    <span class="text-slate-500 mr-1">Didn't receive the code?</span>
                     <button type="submit" id="resendBtn" disabled class="font-bold text-slate-400 cursor-not-allowed transition">
-                        Gửi lại mã (<span id="countdown">59</span>s)
+                        Resend Code (<span id="countdown">59</span>s)
                     </button>
                 </form>
                 
                 <p class="text-[11px] text-slate-400">
-                    Vui lòng kiểm tra cả thư mục <em>Spam / Thư rác</em> nếu không thấy mã trong hộp thư chính.
+                    Please check your <em>Spam or Junk</em> folder if you don't see the email in your inbox.
                 </p>
             </div>
 
@@ -235,7 +228,7 @@
             timeLeft = 59;
             resendBtn.disabled = true;
             resendBtn.className = "font-bold text-slate-400 cursor-not-allowed transition";
-            resendBtn.innerHTML = `Gửi lại mã (<span id="countdown">${timeLeft}</span>s)`;
+            resendBtn.innerHTML = `Resend Code (<span id="countdown">${timeLeft}</span>s)`;
 
             if (timer) clearInterval(timer);
             timer = setInterval(() => {
@@ -247,7 +240,7 @@
                     clearInterval(timer);
                     resendBtn.disabled = false;
                     resendBtn.className = "font-bold text-blue-600 hover:text-blue-700 cursor-pointer underline transition";
-                    resendBtn.innerHTML = "Gửi lại mã ngay";
+                    resendBtn.innerHTML = "Resend Code Now";
                 }
             }, 1000);
         }
