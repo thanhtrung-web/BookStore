@@ -1,8 +1,10 @@
 package com.bookstore.controller;
+
 import com.bookstore.model.User;
 import com.bookstore.service.UserService;
 import com.bookstore.service.UserService.PasswordChangeResult;
 import com.bookstore.service.UserService.ProfileUpdateResult;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -14,21 +16,26 @@ import javax.servlet.http.Part;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 
 /**
- * Presentation Controller for User Account Management (TSK-07).
+ * Controller for User Management (Customer Profile, Password Change, and Administrator Console).
  * Handles:
  *  - GET  /profile         -> UC-43 View Own Profile
  *  - POST /profile         -> UC-44 Update Own Profile
  *  - GET  /change-password -> UC-05 View Change Password Tab
  *  - POST /change-password -> UC-05 Submit Password Change
+ *  - GET  /admin/users     -> Administrator View All Users
+ *  - POST /admin/users     -> Administrator Lock / Unlock User Status
  */
 @WebServlet(name = "UserController", urlPatterns = {
         "/profile",
-        "/change-password"
+        "/change-password",
+        "/admin/users"
 })
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024,      // 1 MB
@@ -37,6 +44,7 @@ import java.sql.SQLException;
 )
 public class UserController extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
     private static final String PROFILE_VIEW = "/views/account/profile.jsp";
 
     private UserService userService;
@@ -50,6 +58,15 @@ public class UserController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String servletPath = request.getServletPath();
+
+        // 1. Admin user management endpoint
+        if ("/admin/users".equals(servletPath)) {
+            handleAdminListUsers(request, response);
+            return;
+        }
+
+        // 2. Customer profile & change password endpoints
         HttpSession session = request.getSession(false);
         User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
         if (authUser == null) {
@@ -67,7 +84,6 @@ public class UserController extends HttpServlet {
             e.printStackTrace();
         }
 
-        String servletPath = request.getServletPath();
         if ("/change-password".equals(servletPath)) {
             request.setAttribute("activeTab", "password");
         } else {
@@ -80,6 +96,15 @@ public class UserController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String servletPath = request.getServletPath();
+
+        // 1. Admin update user status endpoint
+        if ("/admin/users".equals(servletPath)) {
+            handleAdminUpdateUserStatus(request, response);
+            return;
+        }
+
+        // 2. Customer profile update & password change endpoints
         HttpSession session = request.getSession(false);
         User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
         if (authUser == null) {
@@ -87,15 +112,93 @@ public class UserController extends HttpServlet {
             return;
         }
 
-        String servletPath = request.getServletPath();
         String action = request.getParameter("action");
-
         if ("/change-password".equals(servletPath) || "changePassword".equals(action)) {
             handleChangePassword(request, response, authUser);
         } else {
             handleUpdateProfile(request, response, session, authUser);
         }
     }
+
+    // =========================================================================
+    // Administrator Handlers (/admin/users)
+    // =========================================================================
+
+    private void handleAdminListUsers(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        if (!isAdmin(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        try {
+            request.setAttribute("users", userService.getAllUsers());
+            request.getRequestDispatcher("/views/admin/user-list.jsp").forward(request, response);
+        } catch (SQLException ex) {
+            getServletContext().log("Failed to load user management page.", ex);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load user accounts.");
+        }
+    }
+
+    private void handleAdminUpdateUserStatus(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        if (!isAdmin(request)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        String userIdValue = request.getParameter("userId");
+        String status = request.getParameter("status");
+
+        try {
+            if (userIdValue == null || userIdValue.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "User ID is required.");
+                return;
+            }
+
+            long userId = Long.parseLong(userIdValue);
+            HttpSession session = request.getSession(false);
+            User currentUser = (session != null) ? (User) session.getAttribute("authUser") : null;
+
+            if (currentUser != null && currentUser.getId() != null && currentUser.getId().longValue() == userId) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You cannot change your own account status.");
+                return;
+            }
+
+            boolean updated = userService.updateUserStatus(userId, status);
+            String message = updated ? "User account status updated successfully." : "User account was not found.";
+
+            response.sendRedirect(request.getContextPath() + "/admin/users?message="
+                    + URLEncoder.encode(message, StandardCharsets.UTF_8.name()));
+
+        } catch (IllegalArgumentException ex) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user ID or account status.");
+        } catch (SQLException ex) {
+            getServletContext().log("Failed to update user account status.", ex);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to update user account.");
+        }
+    }
+
+    private boolean isAdmin(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return false;
+        }
+        Object authenticatedUser = session.getAttribute("authUser");
+        Object role = session.getAttribute("userRole");
+
+        if (authenticatedUser instanceof User) {
+            User u = (User) authenticatedUser;
+            if ("ADMIN".equalsIgnoreCase(String.valueOf(role)) || u.hasRole("ADMIN")) {
+                return true;
+            }
+        }
+        return "ADMIN".equals(role);
+    }
+
+    // =========================================================================
+    // Customer Profile & Password Handlers (/profile, /change-password)
+    // =========================================================================
 
     private void handleUpdateProfile(HttpServletRequest request, HttpServletResponse response,
                                      HttpSession session, User authUser)

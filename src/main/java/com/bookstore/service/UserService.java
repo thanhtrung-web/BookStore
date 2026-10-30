@@ -6,14 +6,16 @@ import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Business Logic Service for User Profile & Password Management.
- * Implements TSK-07:
+ * Business Logic Service for User Profile, Password, and Administrator User Management.
+ * Implements:
  *  - UC-43: View Own Profile
  *  - UC-44: Update Own Profile
  *  - UC-05: Change Password
+ *  - Admin User Management (List Users, Lock/Unlock Accounts)
  */
 public class UserService {
 
@@ -22,9 +24,28 @@ public class UserService {
 
     private final UserDAO userDAO;
 
+    /**
+     * Default constructor initializing default UserDAO.
+     */
     public UserService() {
         this.userDAO = new UserDAO();
     }
+
+    /**
+     * Creates a UserService with the specified UserDAO (e.g., for dependency injection or testing).
+     *
+     * @param userDAO the data access object used to manage users
+     */
+    public UserService(UserDAO userDAO) {
+        if (userDAO == null) {
+            throw new IllegalArgumentException("UserDAO cannot be null.");
+        }
+        this.userDAO = userDAO;
+    }
+
+    // =========================================================================
+    // Profile & Password Management (UC-43, UC-44, UC-05)
+    // =========================================================================
 
     /**
      * Retrieves a user's fresh profile and roles from the database by ID (UC-43).
@@ -132,6 +153,45 @@ public class UserService {
 
         return PasswordChangeResult.success("Your password has been updated successfully!");
     }
+
+    // =========================================================================
+    // Administrator User Management Logic (Admin Console)
+    // =========================================================================
+
+    /**
+     * Retrieves all non-deleted user accounts.
+     *
+     * @return the list of user accounts
+     * @throws SQLException if a database error occurs
+     */
+    public List<User> getAllUsers() throws SQLException {
+        return userDAO.findAllUsers();
+    }
+
+    /**
+     * Changes an account status to ACTIVE or LOCKED.
+     *
+     * @param userId the ID of the account to update
+     * @param status the requested account status
+     * @return true if the account was updated
+     * @throws IllegalArgumentException if the user ID or status is invalid
+     * @throws SQLException if a database error occurs
+     */
+    public boolean updateUserStatus(long userId, String status) throws SQLException {
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Invalid user ID.");
+        }
+
+        if (!"ACTIVE".equals(status) && !"LOCKED".equals(status)) {
+            throw new IllegalArgumentException("Unsupported account status.");
+        }
+
+        return userDAO.updateUserStatus(userId, status);
+    }
+
+    // =========================================================================
+    // DTO / Result Objects
+    // =========================================================================
 
     public static class ProfileUpdateResult {
         private final boolean success;
