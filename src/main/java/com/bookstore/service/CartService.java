@@ -69,4 +69,65 @@ public class CartService {
 
         cartDAO.addItem(userId, bookId, quantity);
     }
+    public void updateQuantity(long userId, String itemIdInput,
+                           String quantityInput) throws SQLException {
+
+    if (userId <= 0) {
+        throw new IllegalArgumentException(
+                "Vui lòng đăng nhập lại."
+        );
+    }
+
+    long itemId = parseItemId(itemIdInput);
+    int quantity;
+
+    try {
+        quantity = Integer.parseInt(
+                quantityInput == null ? "" : quantityInput.trim()
+        );
+    } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+                "Số lượng phải là số nguyên hợp lệ."
+        );
+    }
+
+    if (quantity <= 0) {
+        throw new IllegalArgumentException(
+                "Số lượng phải lớn hơn 0. Dùng nút Xóa để bỏ sách khỏi giỏ."
+        );
+    }
+
+    cartDAO.updateQuantity(userId, itemId, quantity);
+}
+
+public void removeItem(long userId, String itemIdInput)
+        throws SQLException {
+
+    if (userId <= 0) {
+        throw new IllegalArgumentException(
+                "Vui lòng đăng nhập lại."
+        );
+    }
+
+    cartDAO.removeItem(userId, parseItemId(itemIdInput));
+}
+
+private long parseItemId(String itemIdInput) {
+    try {
+        long itemId = Long.parseLong(
+                itemIdInput == null ? "" : itemIdInput.trim()
+        );
+
+        if (itemId <= 0) {
+            throw new NumberFormatException();
+        }
+
+        return itemId;
+
+    } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+                "Sách trong giỏ hàng không hợp lệ."
+        );
+    }
+}
 }

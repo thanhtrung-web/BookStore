@@ -10,7 +10,7 @@
 <style>
     .cart-page {
         width: 94%;
-        max-width: 1180px;
+        max-width: 1280px;
         margin: 32px auto 60px;
         color: #1e293b;
     }
@@ -41,18 +41,18 @@
 
     .cart-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 290px;
+        grid-template-columns: minmax(0, 1fr) 280px;
         gap: 24px;
         margin-top: 24px;
         align-items: start;
     }
 
     .cart-panel {
+        min-width: 0;
         padding: 24px;
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 18px;
-        min-width: 0;
     }
 
     .cart-table-wrap {
@@ -76,6 +76,7 @@
         background: #f8fafc;
         color: #64748b;
         font-size: 13px;
+        white-space: nowrap;
     }
 
     .cart-table .cart-number {
@@ -84,6 +85,7 @@
     }
 
     .cart-title {
+        min-width: 130px;
         font-weight: 600;
         overflow-wrap: anywhere;
     }
@@ -92,6 +94,68 @@
         margin-top: 7px;
         color: #b45309;
         font-size: 13px;
+    }
+
+    .cart-quantity-form {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .cart-quantity-input {
+        box-sizing: border-box;
+        width: 65px;
+        padding: 8px 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        text-align: center;
+        font: inherit;
+    }
+
+    .cart-step-button {
+        width: 32px;
+        height: 36px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #1e293b;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .cart-save-button {
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cart-remove-button {
+        padding: 8px 12px;
+        border: 1px solid #fecdd3;
+        border-radius: 8px;
+        background: #fff1f2;
+        color: #be123c;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cart-step-button:disabled,
+    .cart-save-button:disabled,
+    .cart-quantity-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .cart-quantity-hint {
+        margin-top: 7px;
+        font-size: 12px;
+        color: #64748b;
+        white-space: normal;
     }
 
     .cart-summary-row {
@@ -156,7 +220,7 @@
         padding: 20px;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
-        background: #fff;
+        background: white;
     }
 
     .cart-cover {
@@ -213,15 +277,15 @@
         color: white;
         font-weight: 600;
         text-align: center;
-        text-decoration: none;
         cursor: pointer;
     }
 
-    .cart-button:hover {
+    .cart-button:hover,
+    .cart-save-button:hover {
         background: #1d4ed8;
     }
 
-    @media (max-width: 850px) {
+    @media (max-width: 1000px) {
         .cart-layout {
             grid-template-columns: 1fr;
         }
@@ -240,7 +304,7 @@
     <h1>Giỏ hàng của bạn</h1>
 
     <p class="cart-muted">
-        Xem sách đã chọn và thêm sách vào giỏ hàng.
+        Xem sách đã chọn, thay đổi số lượng hoặc xóa sách khỏi giỏ hàng.
     </p>
 
     <c:if test="${not empty successMessage}">
@@ -283,8 +347,10 @@
                                         <th class="cart-number">Đơn giá</th>
                                         <th class="cart-number">Số lượng</th>
                                         <th class="cart-number">Thành tiền</th>
+                                        <th>Thao tác</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     <c:forEach var="item" items="${cart.items}">
                                         <tr>
@@ -295,9 +361,10 @@
 
                                                 <c:if test="${item.stockWarning}">
                                                     <div class="cart-warning">
-                                                        Số lượng khả dụng hiện tại:
+                                                        Số lượng khả dụng:
                                                         <c:out value="${item.available}" />.
-                                                        Không đủ hàng cho số lượng đã chọn.
+                                                        Vui lòng giảm số lượng
+                                                        hoặc xóa sách khỏi giỏ.
                                                     </div>
                                                 </c:if>
                                             </td>
@@ -310,7 +377,58 @@
                                             </td>
 
                                             <td class="cart-number">
-                                                <c:out value="${item.quantity}" />
+                                                <form action="${ctx}/cart"
+                                                      method="post"
+                                                      class="cart-quantity-form">
+                                                    <input type="hidden"
+                                                           name="csrfToken"
+                                                           value="${sessionScope.cartCsrfToken}">
+
+                                                    <input type="hidden"
+                                                           name="action"
+                                                           value="update">
+
+                                                    <input type="hidden"
+                                                           name="itemId"
+                                                           value="${item.id}">
+
+                                                    <button type="button"
+                                                            class="cart-step-button"
+                                                            data-delta="-1"
+                                                            aria-label="Giảm số lượng"
+                                                            <c:if test="${item.available le 0}">disabled</c:if>>
+                                                        −
+                                                    </button>
+
+                                                    <input type="number"
+                                                           name="quantity"
+                                                           class="cart-quantity-input"
+                                                           value="${item.quantity}"
+                                                           min="1"
+                                                           max="${item.available gt 0 ? item.available : 1}"
+                                                           step="1"
+                                                           aria-label="Số lượng sách"
+                                                           required
+                                                           <c:if test="${item.available le 0}">disabled</c:if>>
+
+                                                    <button type="button"
+                                                            class="cart-step-button"
+                                                            data-delta="1"
+                                                            aria-label="Tăng số lượng"
+                                                            <c:if test="${item.available le 0}">disabled</c:if>>
+                                                        +
+                                                    </button>
+
+                                                    <button type="submit"
+                                                            class="cart-save-button"
+                                                            <c:if test="${item.available le 0}">disabled</c:if>>
+                                                        Lưu
+                                                    </button>
+                                                </form>
+
+                                                <p class="cart-quantity-hint">
+                                                    Bấm Lưu sau khi đổi số lượng.
+                                                </p>
                                             </td>
 
                                             <td class="cart-number">
@@ -318,6 +436,29 @@
                                                     value="${item.subtotal}"
                                                     maxFractionDigits="0"
                                                 /> ₫
+                                            </td>
+
+                                            <td>
+                                                <form action="${ctx}/cart"
+                                                      method="post"
+                                                      class="cart-remove-form">
+                                                    <input type="hidden"
+                                                           name="csrfToken"
+                                                           value="${sessionScope.cartCsrfToken}">
+
+                                                    <input type="hidden"
+                                                           name="action"
+                                                           value="remove">
+
+                                                    <input type="hidden"
+                                                           name="itemId"
+                                                           value="${item.id}">
+
+                                                    <button type="submit"
+                                                            class="cart-remove-button">
+                                                        Xóa
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -353,6 +494,7 @@
 
         <section id="available-books" class="cart-catalog">
             <h2>Chọn thêm sách</h2>
+
             <p class="cart-muted">
                 Sách đang được bán và còn hàng tại cửa hàng.
             </p>
@@ -386,31 +528,26 @@
                                 </p>
 
                                 <form action="${ctx}/cart/add" method="post">
-                                    <input
-                                        type="hidden"
-                                        name="csrfToken"
-                                        value="${sessionScope.cartCsrfToken}"
-                                    >
-                                    <input
-                                        type="hidden"
-                                        name="bookId"
-                                        value="${book.id}"
-                                    >
+                                    <input type="hidden"
+                                           name="csrfToken"
+                                           value="${sessionScope.cartCsrfToken}">
+
+                                    <input type="hidden"
+                                           name="bookId"
+                                           value="${book.id}">
 
                                     <label for="quantity-${book.id}">
                                         Số lượng thêm
                                     </label>
 
-                                    <input
-                                        id="quantity-${book.id}"
-                                        type="number"
-                                        name="quantity"
-                                        value="1"
-                                        min="1"
-                                        max="${book.available}"
-                                        step="1"
-                                        required
-                                    >
+                                    <input id="quantity-${book.id}"
+                                           type="number"
+                                           name="quantity"
+                                           value="1"
+                                           min="1"
+                                           max="${book.available}"
+                                           step="1"
+                                           required>
 
                                     <button type="submit" class="cart-button">
                                         Thêm vào giỏ hàng
@@ -424,5 +561,36 @@
         </section>
     </c:if>
 </main>
+
+<script>
+    document.querySelectorAll(".cart-step-button").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const form = button.closest("form");
+            const input = form.querySelector('input[name="quantity"]');
+            const minimum = Number(input.min);
+            const maximum = Number(input.max);
+            const delta = Number(button.dataset.delta);
+            const current = Number(input.value);
+
+            if (!Number.isInteger(current)) {
+                input.value = minimum;
+                return;
+            }
+
+            input.value = Math.min(
+                maximum,
+                Math.max(minimum, current + delta)
+            );
+        });
+    });
+
+    document.querySelectorAll(".cart-remove-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (!window.confirm("Bạn muốn xóa sách này khỏi giỏ hàng?")) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
 
 <jsp:include page="/views/common/footer.jsp" />
