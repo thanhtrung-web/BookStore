@@ -1,10 +1,8 @@
 package com.bookstore.controller;
-
 import com.bookstore.model.User;
 import com.bookstore.service.UserService;
 import com.bookstore.service.UserService.PasswordChangeResult;
 import com.bookstore.service.UserService.ProfileUpdateResult;
-
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
