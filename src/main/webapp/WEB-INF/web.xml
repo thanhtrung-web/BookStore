@@ -74,7 +74,7 @@
         <url-pattern>/logout</url-pattern>
     </servlet-mapping>
 
-    <!-- UserController Servlet (TSK-07: UC-43 View Profile, UC-44 Update Profile, UC-05 Change Password) -->
+    <!-- UserController Servlet (TSK-07: Profile, Change Password, Admin User Management) -->
     <servlet>
         <servlet-name>UserController</servlet-name>
         <servlet-class>com.bookstore.controller.UserController</servlet-class>
@@ -88,6 +88,7 @@
         <servlet-name>UserController</servlet-name>
         <url-pattern>/profile</url-pattern>
         <url-pattern>/change-password</url-pattern>
+        <url-pattern>/admin/users</url-pattern>
     </servlet-mapping>
 
     <!-- Welcome File -->
