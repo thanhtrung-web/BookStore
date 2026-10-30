@@ -30,7 +30,7 @@ public class OrderController extends HttpServlet {
             return;
         }
 
-        ensureToken(request.getSession());
+        ensureTokens(request.getSession());
 
         Map<String, String> form = new LinkedHashMap<>();
         form.put("recipientName", "");
@@ -39,7 +39,7 @@ public class OrderController extends HttpServlet {
         form.put("note", "");
         form.put("voucherCode", "");
 
-        renderCheckout(request, response, user, form, false);
+        renderCheckout(request, response, user, form);
     }
 
     @Override
@@ -57,31 +57,39 @@ public class OrderController extends HttpServlet {
 
         HttpSession session = request.getSession();
 
-        String expectedToken =
+        String expectedCsrf =
                 (String) session.getAttribute("checkoutCsrfToken");
-        String suppliedToken = request.getParameter("csrfToken");
+        String suppliedCsrf = request.getParameter("csrfToken");
 
-        if (expectedToken == null || !expectedToken.equals(suppliedToken)) {
+        if (expectedCsrf == null || !expectedCsrf.equals(suppliedCsrf)) {
             response.sendError(
                     HttpServletResponse.SC_FORBIDDEN,
-                    "Phiên thao tác không hợp lệ. Vui lòng mở lại trang xác nhận."
+                    "Phiên thao tác không hợp lệ. Vui lòng mở lại trang."
             );
             return;
         }
 
-        Map<String, String> form = new LinkedHashMap<>();
-        form.put("recipientName", readValue(request, "recipientName"));
-        form.put("phone", readValue(request, "phone"));
-        form.put("shippingAddress", readValue(request, "shippingAddress"));
-        form.put("note", readValue(request, "note"));
-        form.put("voucherCode", readValue(request, "voucherCode"));
-
+        Map<String, String> form = readForm(request);
         String action = request.getParameter("action");
 
-        if (!"review".equals(action)
-                && !"applyVoucher".equals(action)
-                && !"removeVoucher".equals(action)) {
+        if ("removeVoucher".equals(action)) {
+            form.put("voucherCode", "");
+            renderCheckout(request, response, user, form);
+            return;
+        }
 
+        if ("applyVoucher".equals(action)) {
+            if (form.get("voucherCode").isEmpty()) {
+                request.setAttribute(
+                        "errorMessage", "Vui lòng nhập mã giảm giá."
+                );
+            }
+
+            renderCheckout(request, response, user, form);
+            return;
+        }
+
+        if (!"placeOrder".equals(action)) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
                     "Thao tác không hợp lệ."
@@ -89,33 +97,89 @@ public class OrderController extends HttpServlet {
             return;
         }
 
-        if ("removeVoucher".equals(action)) {
-            form.put("voucherCode", "");
+        String suppliedToken = request.getParameter("orderToken");
+
+        synchronized (session) {
+            String completedToken =
+                    (String) session.getAttribute("completedOrderToken");
+
+            if (suppliedToken != null && suppliedToken.equals(completedToken)) {
+                session.setAttribute(
+                        "cartSuccess",
+                        "Đơn hàng đã được ghi nhận. Mã đơn: "
+                                + session.getAttribute("completedOrderCode")
+                );
+
+                response.sendRedirect(request.getContextPath() + "/cart");
+                return;
+            }
+
+            String expectedToken =
+                    (String) session.getAttribute("orderRequestToken");
+
+            if (expectedToken == null
+                    || !expectedToken.equals(suppliedToken)) {
+
+                response.sendError(
+                        HttpServletResponse.SC_CONFLICT,
+                        "Phiên đặt hàng đã thay đổi. Vui lòng mở lại trang."
+                );
+                return;
+            }
+
+            Map<String, String> errors =
+                    orderService.validateRecipient(form);
+
+            if (!errors.isEmpty()) {
+                request.setAttribute("errors", errors);
+                request.setAttribute(
+                        "errorMessage",
+                        "Vui lòng kiểm tra lại thông tin nhận hàng."
+                );
+            } else {
+                try {
+                    String orderCode = orderService.placeOrder(
+                            user.getId(), suppliedToken, form
+                    );
+
+                    session.setAttribute("completedOrderToken", suppliedToken);
+                    session.setAttribute("completedOrderCode", orderCode);
+                    session.removeAttribute("orderRequestToken");
+                    session.removeAttribute("appliedVoucher");
+                    session.setAttribute("cartCount", 0L);
+                    session.removeAttribute("cartError");
+                    session.setAttribute(
+                            "cartSuccess",
+                            "Đặt hàng thành công. Mã đơn: " + orderCode
+                    );
+
+                    response.sendRedirect(
+                            request.getContextPath() + "/cart"
+                    );
+                    return;
+
+                } catch (IllegalArgumentException e) {
+                    request.setAttribute("errorMessage", e.getMessage());
+
+                } catch (SQLException e) {
+                    getServletContext().log("Could not place order.", e);
+
+                    request.setAttribute(
+                            "errorMessage",
+                            "Chưa thể xác nhận kết quả đặt hàng. "
+                                    + "Vui lòng thử lại trên trang này."
+                    );
+                }
+            }
         }
 
-        if ("applyVoucher".equals(action)
-                && form.get("voucherCode").isEmpty()) {
-
-            request.setAttribute(
-                    "errorMessage",
-                    "Vui lòng nhập mã giảm giá."
-            );
-        }
-
-        renderCheckout(
-                request,
-                response,
-                user,
-                form,
-                "review".equals(action)
-        );
+        renderCheckout(request, response, user, form);
     }
 
     private void renderCheckout(HttpServletRequest request,
                                 HttpServletResponse response,
                                 User user,
-                                Map<String, String> form,
-                                boolean review)
+                                Map<String, String> form)
             throws ServletException, IOException {
 
         response.setHeader("Cache-Control", "no-store");
@@ -126,45 +190,18 @@ public class OrderController extends HttpServlet {
 
         try {
             Map<String, Object> checkout = orderService.getCheckout(
-                    user.getId(),
-                    form.get("voucherCode")
+                    user.getId(), form.get("voucherCode")
             );
 
             request.setAttribute("checkout", checkout);
             request.setAttribute("checkoutLoaded", true);
 
             request.getSession().setAttribute(
-                    "cartCount",
-                    checkout.get("totalQuantity")
+                    "cartCount", checkout.get("totalQuantity")
             );
-
-            if (review) {
-                Map<String, String> errors =
-                        orderService.validateRecipient(form);
-
-                request.setAttribute("errors", errors);
-
-                if (!Boolean.TRUE.equals(checkout.get("stockValid"))) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Giỏ hàng trống hoặc có sách không đủ tồn kho. "
-                                    + "Vui lòng quay lại giỏ hàng để điều chỉnh."
-                    );
-
-                } else if (checkout.get("voucherError") != null) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Vui lòng sửa hoặc bỏ mã giảm giá không hợp lệ."
-                    );
-
-                } else if (errors.isEmpty()) {
-                    request.setAttribute("reviewReady", true);
-                }
-            }
 
         } catch (SQLException e) {
             getServletContext().log("Could not load checkout.", e);
-
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
             request.setAttribute(
@@ -177,6 +214,18 @@ public class OrderController extends HttpServlet {
                 .forward(request, response);
     }
 
+    private Map<String, String> readForm(HttpServletRequest request) {
+        Map<String, String> form = new LinkedHashMap<>();
+
+        form.put("recipientName", readValue(request, "recipientName"));
+        form.put("phone", readValue(request, "phone"));
+        form.put("shippingAddress", readValue(request, "shippingAddress"));
+        form.put("note", readValue(request, "note"));
+        form.put("voucherCode", readValue(request, "voucherCode"));
+
+        return form;
+    }
+
     private String readValue(HttpServletRequest request, String name) {
         String value = request.getParameter(name);
         return value == null ? "" : value.trim();
@@ -187,7 +236,6 @@ public class OrderController extends HttpServlet {
             throws IOException {
 
         HttpSession session = request.getSession(false);
-
         Object authUser =
                 session == null ? null : session.getAttribute("authUser");
 
@@ -203,11 +251,18 @@ public class OrderController extends HttpServlet {
         return null;
     }
 
-    private void ensureToken(HttpSession session) {
+    private void ensureTokens(HttpSession session) {
         synchronized (session) {
             if (session.getAttribute("checkoutCsrfToken") == null) {
                 session.setAttribute(
                         "checkoutCsrfToken",
+                        UUID.randomUUID().toString()
+                );
+            }
+
+            if (session.getAttribute("orderRequestToken") == null) {
+                session.setAttribute(
+                        "orderRequestToken",
                         UUID.randomUUID().toString()
                 );
             }
