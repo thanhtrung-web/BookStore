@@ -268,9 +268,9 @@
                             <p class="cart-muted">
                                 Chọn sách ở bên dưới để bắt đầu mua sắm.
                             </p>
-                            <a href="#available-books" class="cart-back">
-                                Chọn sách ngay ↓
-                            </a>
+                                <a href="${ctx}/home" class="cart-back">
+                                    Tiếp tục mua sắm
+                                </a>
                         </div>
                     </c:when>
 
@@ -350,78 +350,6 @@
                 </p>
             </aside>
         </div>
-
-        <section id="available-books" class="cart-catalog">
-            <h2>Chọn thêm sách</h2>
-            <p class="cart-muted">
-                Sách đang được bán và còn hàng tại cửa hàng.
-            </p>
-
-            <c:choose>
-                <c:when test="${empty books}">
-                    <div class="cart-panel">
-                        Hiện chưa có sách còn hàng để thêm vào giỏ.
-                    </div>
-                </c:when>
-
-                <c:otherwise>
-                    <div class="cart-books">
-                        <c:forEach var="book" items="${books}">
-                            <article class="cart-book">
-                                <div class="cart-cover" aria-hidden="true">📚</div>
-
-                                <h3>
-                                    <c:out value="${book.title}" />
-                                </h3>
-
-                                <div class="cart-price">
-                                    <fmt:formatNumber
-                                        value="${book.unitPrice}"
-                                        maxFractionDigits="0"
-                                    /> ₫
-                                </div>
-
-                                <p class="cart-muted">
-                                    Còn <c:out value="${book.available}" /> cuốn
-                                </p>
-
-                                <form action="${ctx}/cart/add" method="post">
-                                    <input
-                                        type="hidden"
-                                        name="csrfToken"
-                                        value="${sessionScope.cartCsrfToken}"
-                                    >
-                                    <input
-                                        type="hidden"
-                                        name="bookId"
-                                        value="${book.id}"
-                                    >
-
-                                    <label for="quantity-${book.id}">
-                                        Số lượng thêm
-                                    </label>
-
-                                    <input
-                                        id="quantity-${book.id}"
-                                        type="number"
-                                        name="quantity"
-                                        value="1"
-                                        min="1"
-                                        max="${book.available}"
-                                        step="1"
-                                        required
-                                    >
-
-                                    <button type="submit" class="cart-button">
-                                        Thêm vào giỏ hàng
-                                    </button>
-                                </form>
-                            </article>
-                        </c:forEach>
-                    </div>
-                </c:otherwise>
-            </c:choose>
-        </section>
     </c:if>
 </main>
 
