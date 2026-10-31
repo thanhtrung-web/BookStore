@@ -1,4 +1,3 @@
-
 package com.bookstore.service;
 
 import com.bookstore.dao.ReportDAO;
@@ -6,12 +5,10 @@ import com.bookstore.dao.ReportDAO;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Handles business logic for revenue and best-selling book reports.
- */
 public class ReportService {
 
     private final ReportDAO reportDAO;
@@ -21,22 +18,44 @@ public class ReportService {
     }
 
     /**
-     * Gets revenue statistics grouped by day, week, or month.
+     * Ngày bắt đầu mặc định để lấy dữ liệu toàn bộ lịch sử.
+     */
+    public Date getDefaultStartDate() {
+        return Date.valueOf(LocalDate.of(2000, 1, 1));
+    }
+
+    /**
+     * Ngày kết thúc mặc định là ngày hiện tại.
+     */
+    public Date getDefaultEndDate() {
+        return Date.valueOf(LocalDate.now());
+    }
+
+    /**
+     * Lấy dữ liệu KPI cho Executive Dashboard.
+     */
+    public Map<String, Object> getDashboardSummary(
+            Date startDate, Date endDate) throws SQLException {
+
+        validateDateRange(startDate, endDate);
+        return reportDAO.getDashboardSummary(startDate, endDate);
+    }
+
+    /**
+     * Lấy doanh thu theo ngày, tuần hoặc tháng.
      */
     public List<Map<String, Object>> getRevenueReport(
-            Date startDate,
-            Date endDate,
-            String groupBy) throws SQLException {
+            Date startDate, Date endDate, String groupBy) throws SQLException {
 
         validateDateRange(startDate, endDate);
 
         String normalizedGroupBy =
-                groupBy == null ? "DAY" : groupBy.trim().toUpperCase();
+                groupBy == null ? "MONTH" : groupBy.trim().toUpperCase();
 
         if (!normalizedGroupBy.equals("DAY")
                 && !normalizedGroupBy.equals("WEEK")
                 && !normalizedGroupBy.equals("MONTH")) {
-            normalizedGroupBy = "DAY";
+            normalizedGroupBy = "MONTH";
         }
 
         return reportDAO.getRevenueReport(
@@ -44,11 +63,7 @@ public class ReportService {
     }
 
     /**
-     * Gets the top-selling books for a selected period.
-     *
-     * @param categoryId null means all categories
-     * @param rankingMetric QUANTITY or REVENUE
-     * @param limit maximum number of books
+     * Lấy top sách bán chạy.
      */
     public List<Map<String, Object>> getBestSellingBooks(
             Date startDate,
@@ -59,57 +74,50 @@ public class ReportService {
 
         validateDateRange(startDate, endDate);
 
-        if (categoryId != null && categoryId <= 0) {
-            throw new IllegalArgumentException(
-                    "Category ID must be greater than zero.");
-        }
-
-        String normalizedMetric = rankingMetric == null
-                ? "QUANTITY"
-                : rankingMetric.trim().toUpperCase();
+        String normalizedMetric =
+                rankingMetric == null
+                        ? "QUANTITY"
+                        : rankingMetric.trim().toUpperCase();
 
         if (!normalizedMetric.equals("QUANTITY")
                 && !normalizedMetric.equals("REVENUE")) {
             normalizedMetric = "QUANTITY";
         }
 
-        int safeLimit = Math.max(1, Math.min(limit, 100));
+        if (limit < 1 || limit > 100) {
+            limit = 10;
+        }
 
         return reportDAO.getBestSellingBooks(
                 startDate,
                 endDate,
                 categoryId,
                 normalizedMetric,
-                safeLimit);
+                limit);
     }
 
-    /**
-     * Gets total revenue for a selected period.
-     */
     public BigDecimal getTotalRevenue(
-            Date startDate,
-            Date endDate) throws SQLException {
+            Date startDate, Date endDate) throws SQLException {
 
         validateDateRange(startDate, endDate);
 
-        BigDecimal total = reportDAO.getTotalRevenue(
-                startDate, endDate);
+        BigDecimal revenue =
+                reportDAO.getTotalRevenue(startDate, endDate);
 
-        return total == null ? BigDecimal.ZERO : total;
+        return revenue == null ? BigDecimal.ZERO : revenue;
     }
 
-    /**
-     * Validates the selected date range.
-     */
-    private void validateDateRange(Date startDate, Date endDate) {
+    private void validateDateRange(
+            Date startDate, Date endDate) {
+
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException(
-                    "Start date and end date are required.");
+                    "Ngày bắt đầu và ngày kết thúc không được để trống.");
         }
 
         if (startDate.after(endDate)) {
             throw new IllegalArgumentException(
-                    "Start date must not be after end date.");
+                    "Ngày bắt đầu không được lớn hơn ngày kết thúc.");
         }
     }
 }

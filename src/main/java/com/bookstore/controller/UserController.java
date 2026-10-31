@@ -1,3 +1,4 @@
+
 package com.bookstore.controller;
 
 import com.bookstore.model.User;
@@ -25,6 +26,7 @@ import java.sql.SQLException;
 /**
  * Controller for User Management (Customer Profile, Password Change, and
  * Management Dashboards).
+ *
  * Handles:
  * - GET /profile -> UC-43 View Own Profile
  * - POST /profile -> UC-44 Update Own Profile
@@ -32,8 +34,11 @@ import java.sql.SQLException;
  * - POST /change-password -> UC-05 Submit Password Change
  * - GET /dashboard/admin -> Administrator Portal Dashboard
  * - GET /dashboard/staff -> Staff Workspace Dashboard
- * - GET /dashboard/admin/users -> Administrator View All Users
+ * - GET /dashboard/admin/users -> Redirect to integrated user management
  * - POST /dashboard/admin/users -> Administrator Lock / Unlock User Status
+ *
+ * TSK-31:
+ * - Load dashboard summary, top-selling books and revenue analytics.
  */
 @WebServlet(name = "UserController", urlPatterns = {
         "/profile",
@@ -42,19 +47,32 @@ import java.sql.SQLException;
         "/dashboard/staff",
         "/dashboard/admin/users"
 })
-@MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1 MB
-        maxFileSize = 2 * 1024 * 1024, // 2 MB max per avatar
-        maxRequestSize = 5 * 1024 * 1024 // 5 MB max request
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024,
+        maxFileSize = 2 * 1024 * 1024,
+        maxRequestSize = 5 * 1024 * 1024
 )
 public class UserController extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
-    private static final String PROFILE_VIEW = "/views/account/profile.jsp";
-    private static final String ADMIN_DASHBOARD_VIEW = "/views/admin/dashboard.jsp";
-    private static final String STAFF_DASHBOARD_VIEW = "/views/staff/dashboard.jsp";
-    private static final String ADMIN_USERS_VIEW = "/views/admin/user-list.jsp";
+
+    private static final String PROFILE_VIEW =
+            "/views/account/profile.jsp";
+
+    private static final String ADMIN_DASHBOARD_VIEW =
+            "/views/admin/dashboard.jsp";
+
+    private static final String STAFF_DASHBOARD_VIEW =
+            "/views/staff/dashboard.jsp";
+
+    private static final String ADMIN_USERS_VIEW =
+            "/views/admin/user-list.jsp";
 
     private UserService userService;
+
+    // TSK-31: Controller for dashboard revenue and book reports.
+    private final ReportController reportController =
+            new ReportController();
 
     @Override
     public void init() throws ServletException {
@@ -62,79 +80,117 @@ public class UserController extends HttpServlet {
         this.userService = new UserService();
     }
 
+    // =========================================================================
+    // GET REQUESTS
+    // =========================================================================
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
+
         String servletPath = request.getServletPath();
-        // Admin lock / unlock user account
-        // Redirect old user management URL to the integrated dashboard
+
+        // Redirect old user management URL to the integrated dashboard.
         if ("/dashboard/admin/users".equals(servletPath)) {
+
             if (!isAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
+                response.sendRedirect(
+                        request.getContextPath() + "/login"
+                );
                 return;
             }
 
             response.sendRedirect(
-                    request.getContextPath() + "/dashboard/admin?view=users");
+                    request.getContextPath()
+                            + "/dashboard/admin?view=users"
+            );
             return;
         }
+
         // 1. Admin Portal Dashboard
         if ("/dashboard/admin".equals(servletPath)) {
+
             if (!isAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
+                response.sendRedirect(
+                        request.getContextPath() + "/login"
+                );
                 return;
             }
 
             try {
-                request.setAttribute("users", userService.getAllUsers());
+                // Load user accounts for TSK-28.
+                request.setAttribute(
+                        "users",
+                        userService.getAllUsers()
+                );
+
             } catch (SQLException ex) {
-                getServletContext().log("Failed to load users for dashboard.", ex);
+
+                getServletContext().log(
+                        "Failed to load users for dashboard.",
+                        ex
+                );
+
                 response.sendError(
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                        "Unable to load user accounts.");
+                        "Unable to load user accounts."
+                );
                 return;
             }
 
-            request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW).forward(request, response);
+            // TSK-31: Load dashboard KPIs, top books and revenue analytics.
+            reportController.loadDashboardReport(request);
+
+            request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW)
+                    .forward(request, response);
             return;
         }
 
         // 2. Staff Workspace Dashboard
         if ("/dashboard/staff".equals(servletPath)) {
+
             if (!isStaffOrAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
+                response.sendRedirect(
+                        request.getContextPath() + "/login"
+                );
                 return;
             }
-            request.getRequestDispatcher(STAFF_DASHBOARD_VIEW).forward(request, response);
+
+            request.getRequestDispatcher(STAFF_DASHBOARD_VIEW)
+                    .forward(request, response);
             return;
         }
 
-        // 3. Admin user management list
-        // if ("/dashboard/admin/users".equals(servletPath)) {
-        //     if (!isAdmin(request)) {
-        //         response.sendRedirect(request.getContextPath() + "/login");
-        //         return;
-        //     }
-        //     handleAdminListUsers(request, response);
-        //     return;
-        // }
-
-        // 4. Customer profile & change password endpoints
+        // 3. Customer profile & change password endpoints.
         HttpSession session = request.getSession(false);
-        User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
+
+        User authUser = (session != null)
+                ? (User) session.getAttribute("authUser")
+                : null;
+
         if (authUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
             return;
         }
 
-        // Refresh user profile from DB to ensure latest data (UC-43)
+        // Refresh user profile from DB to ensure latest data (UC-43).
         try {
+
             User freshUser = userService.getUserById(authUser.getId());
+
             if (freshUser != null && session != null) {
                 session.setAttribute("authUser", freshUser);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+        } catch (SQLException ex) {
+            getServletContext().log(
+                    "Failed to refresh user profile.",
+                    ex
+            );
         }
 
         if ("/change-password".equals(servletPath)) {
@@ -143,17 +199,29 @@ public class UserController extends HttpServlet {
             request.setAttribute("activeTab", "profile");
         }
 
-        request.getRequestDispatcher(PROFILE_VIEW).forward(request, response);
+        request.getRequestDispatcher(PROFILE_VIEW)
+                .forward(request, response);
     }
 
+    // =========================================================================
+    // POST REQUESTS
+    // =========================================================================
+
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
+
         String servletPath = request.getServletPath();
-        // Admin lock / unlock user account
+
+        // Admin lock / unlock user account (TSK-28).
         if ("/dashboard/admin/users".equals(servletPath)) {
+
             if (!isAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
+                response.sendRedirect(
+                        request.getContextPath() + "/login"
+                );
                 return;
             }
 
@@ -161,246 +229,506 @@ public class UserController extends HttpServlet {
             return;
         }
 
-        // 1. Admin update user status endpoint
+        // 1. Admin Dashboard POST endpoint.
         if ("/dashboard/admin".equals(servletPath)) {
+
             if (!isAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
+                response.sendRedirect(
+                        request.getContextPath() + "/login"
+                );
                 return;
             }
 
             try {
-                java.util.List<User> users = userService.getAllUsers();
+
+                java.util.List<User> users =
+                        userService.getAllUsers();
 
                 getServletContext().log(
-                        "[ADMIN DASHBOARD] Servlet Path: " + servletPath);
+                        "[ADMIN DASHBOARD] Servlet Path: "
+                                + servletPath
+                );
 
                 getServletContext().log(
                         "[ADMIN DASHBOARD] Users count: "
-                                + (users == null ? "NULL" : users.size()));
+                                + (users == null ? "NULL" : users.size())
+                );
 
                 request.setAttribute("users", users);
 
             } catch (SQLException ex) {
+
                 getServletContext().log(
-                        "[ADMIN DASHBOARD] Failed to load users.", ex);
+                        "[ADMIN DASHBOARD] Failed to load users.",
+                        ex
+                );
 
                 response.sendError(
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                        "Unable to load user accounts.");
+                        "Unable to load user accounts."
+                );
                 return;
             }
+
+            // TSK-31: Reload dashboard reports before forwarding.
+            reportController.loadDashboardReport(request);
 
             request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW)
                     .forward(request, response);
             return;
         }
 
-        // 2. Customer profile update & password change endpoints
+        // 2. Customer profile update & password change endpoints.
         HttpSession session = request.getSession(false);
-        User authUser = (session != null) ? (User) session.getAttribute("authUser") : null;
+
+        User authUser = (session != null)
+                ? (User) session.getAttribute("authUser")
+                : null;
+
         if (authUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
             return;
         }
 
         String action = request.getParameter("action");
-        if ("/change-password".equals(servletPath) || "changePassword".equals(action)) {
+
+        if ("/change-password".equals(servletPath)
+                || "changePassword".equals(action)) {
+
             handleChangePassword(request, response, authUser);
+
         } else {
-            handleUpdateProfile(request, response, session, authUser);
+
+            handleUpdateProfile(
+                    request,
+                    response,
+                    session,
+                    authUser
+            );
         }
     }
 
     // =========================================================================
-    // Administrator Handlers (/dashboard/admin/*)
+    // ADMINISTRATOR HANDLERS (/dashboard/admin/*)
     // =========================================================================
 
-    private void handleAdminListUsers(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    private void handleAdminListUsers(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
+
         try {
-            request.setAttribute("users", userService.getAllUsers());
-            request.getRequestDispatcher(ADMIN_USERS_VIEW).forward(request, response);
+
+            request.setAttribute(
+                    "users",
+                    userService.getAllUsers()
+            );
+
+            request.getRequestDispatcher(ADMIN_USERS_VIEW)
+                    .forward(request, response);
+
         } catch (SQLException ex) {
-            getServletContext().log("Failed to load user management page.", ex);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load user accounts.");
+
+            getServletContext().log(
+                    "Failed to load user management page.",
+                    ex
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Unable to load user accounts."
+            );
         }
     }
 
-    private void handleAdminUpdateUserStatus(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    private void handleAdminUpdateUserStatus(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
+
         String userIdValue = request.getParameter("userId");
         String status = request.getParameter("status");
 
         try {
-            if (userIdValue == null || userIdValue.trim().isEmpty()) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "User ID is required.");
+
+            if (userIdValue == null
+                    || userIdValue.trim().isEmpty()) {
+
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "User ID is required."
+                );
                 return;
             }
 
             long userId = Long.parseLong(userIdValue);
-            HttpSession session = request.getSession(false);
-            User currentUser = (session != null) ? (User) session.getAttribute("authUser") : null;
 
-            if (currentUser != null && currentUser.getId() != null && currentUser.getId().longValue() == userId) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You cannot change your own account status.");
+            HttpSession session = request.getSession(false);
+
+            User currentUser = (session != null)
+                    ? (User) session.getAttribute("authUser")
+                    : null;
+
+            if (currentUser != null
+                    && currentUser.getId() != null
+                    && currentUser.getId().longValue() == userId) {
+
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "You cannot change your own account status."
+                );
                 return;
             }
 
-            boolean updated = userService.updateUserStatus(userId, status);
-            String message = updated ? "User account status updated successfully." : "User account was not found.";
+            boolean updated =
+                    userService.updateUserStatus(userId, status);
+
+            String message = updated
+                    ? "User account status updated successfully."
+                    : "User account was not found.";
 
             response.sendRedirect(
                     request.getContextPath()
                             + "/dashboard/admin?view=users&message="
-                            + URLEncoder.encode(message, StandardCharsets.UTF_8.name()));
+                            + URLEncoder.encode(
+                                    message,
+                                    StandardCharsets.UTF_8.name()
+                            )
+            );
 
         } catch (IllegalArgumentException ex) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user ID or account status.");
+
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Invalid user ID or account status."
+            );
+
         } catch (SQLException ex) {
-            getServletContext().log("Failed to update user account status.", ex);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to update user account.");
+
+            getServletContext().log(
+                    "Failed to update user account status.",
+                    ex
+            );
+
+            response.sendError(
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Unable to update user account."
+            );
         }
     }
 
+    // =========================================================================
+    // AUTHORIZATION
+    // =========================================================================
+
     private boolean isAdmin(HttpServletRequest request) {
+
         HttpSession session = request.getSession(false);
+
         if (session == null) {
             return false;
         }
-        Object authenticatedUser = session.getAttribute("authUser");
-        Object role = session.getAttribute("userRole");
+
+        Object authenticatedUser =
+                session.getAttribute("authUser");
+
+        Object role =
+                session.getAttribute("userRole");
 
         if (authenticatedUser instanceof User) {
-            User u = (User) authenticatedUser;
-            if ("ADMIN".equalsIgnoreCase(String.valueOf(role)) || u.hasRole("ADMIN")) {
+
+            User user = (User) authenticatedUser;
+
+            if ("ADMIN".equalsIgnoreCase(String.valueOf(role))
+                    || user.hasRole("ADMIN")) {
                 return true;
             }
         }
+
         return "ADMIN".equals(role);
     }
 
     private boolean isStaffOrAdmin(HttpServletRequest request) {
+
         HttpSession session = request.getSession(false);
+
         if (session == null) {
             return false;
         }
-        Object authenticatedUser = session.getAttribute("authUser");
+
+        Object authenticatedUser =
+                session.getAttribute("authUser");
+
         if (authenticatedUser instanceof User) {
-            User u = (User) authenticatedUser;
-            return u.hasRole("ADMIN") || u.hasRole("STAFF") || u.hasRole("INVENTORY_STAFF");
+
+            User user = (User) authenticatedUser;
+
+            return user.hasRole("ADMIN")
+                    || user.hasRole("STAFF")
+                    || user.hasRole("INVENTORY_STAFF");
         }
+
         Object role = session.getAttribute("userRole");
-        return "ADMIN".equals(role) || "STAFF".equals(role);
+
+        return "ADMIN".equals(role)
+                || "STAFF".equals(role);
     }
 
     // =========================================================================
-    // Customer Profile & Password Handlers (/profile, /change-password)
+    // CUSTOMER PROFILE HANDLERS
     // =========================================================================
 
-    private void handleUpdateProfile(HttpServletRequest request, HttpServletResponse response,
-            HttpSession session, User authUser)
-            throws ServletException, IOException {
+    private void handleUpdateProfile(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            HttpSession session,
+            User authUser
+    ) throws ServletException, IOException {
+
         request.setAttribute("activeTab", "profile");
 
         String fullName = request.getParameter("fullName");
         String phoneNumber = request.getParameter("phoneNumber");
         String dob = request.getParameter("dob");
         String gender = request.getParameter("gender");
+
         String avatarUrl = authUser.getAvatarUrl();
 
-        // Check for optional avatar file upload
+        // Optional avatar file upload.
         try {
+
             String contentType = request.getContentType();
-            if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
+
+            if (contentType != null
+                    && contentType.toLowerCase().startsWith("multipart/")) {
+
                 Part avatarPart = request.getPart("avatarFile");
+
                 if (avatarPart != null && avatarPart.getSize() > 0) {
-                    String submittedName = getSubmittedFileName(avatarPart);
+
+                    String submittedName =
+                            getSubmittedFileName(avatarPart);
+
                     String ext = ".png";
-                    if (submittedName != null && submittedName.contains(".")) {
-                        ext = submittedName.substring(submittedName.lastIndexOf('.')).toLowerCase();
+
+                    if (submittedName != null
+                            && submittedName.contains(".")) {
+
+                        ext = submittedName.substring(
+                                submittedName.lastIndexOf('.')
+                        ).toLowerCase();
                     }
-                    if (!ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".png") && !ext.equals(".webp")) {
-                        request.setAttribute("errorMessage", "Only JPG, PNG, or WEBP avatar images are supported.");
-                        request.getRequestDispatcher(PROFILE_VIEW).forward(request, response);
+
+                    if (!ext.equals(".jpg")
+                            && !ext.equals(".jpeg")
+                            && !ext.equals(".png")
+                            && !ext.equals(".webp")) {
+
+                        request.setAttribute(
+                                "errorMessage",
+                                "Only JPG, PNG, or WEBP avatar images are supported."
+                        );
+
+                        request.getRequestDispatcher(PROFILE_VIEW)
+                                .forward(request, response);
                         return;
                     }
 
-                    String relativeDir = "/static/uploads/avatars";
-                    String realDirPath = getServletContext().getRealPath(relativeDir);
+                    String relativeDir =
+                            "/static/uploads/avatars";
+
+                    String realDirPath =
+                            getServletContext().getRealPath(relativeDir);
+
                     if (realDirPath != null) {
+
                         File uploadDir = new File(realDirPath);
+
                         if (!uploadDir.exists()) {
                             uploadDir.mkdirs();
                         }
-                        String fileName = "avatar_u" + authUser.getId() + "_" + System.currentTimeMillis() + ext;
-                        File targetFile = new File(uploadDir, fileName);
-                        try (InputStream in = avatarPart.getInputStream()) {
-                            Files.copy(in, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                        String fileName =
+                                "avatar_u"
+                                        + authUser.getId()
+                                        + "_"
+                                        + System.currentTimeMillis()
+                                        + ext;
+
+                        File targetFile =
+                                new File(uploadDir, fileName);
+
+                        try (InputStream in =
+                                     avatarPart.getInputStream()) {
+
+                            Files.copy(
+                                    in,
+                                    targetFile.toPath(),
+                                    StandardCopyOption.REPLACE_EXISTING
+                            );
                         }
-                        avatarUrl = request.getContextPath() + relativeDir + "/" + fileName;
+
+                        avatarUrl =
+                                request.getContextPath()
+                                        + relativeDir
+                                        + "/"
+                                        + fileName;
                     }
                 }
             }
-        } catch (IllegalStateException e) {
-            request.setAttribute("errorMessage", "Uploaded image exceeds maximum allowed size (2MB).");
-            request.getRequestDispatcher(PROFILE_VIEW).forward(request, response);
+
+        } catch (IllegalStateException ex) {
+
+            request.setAttribute(
+                    "errorMessage",
+                    "Uploaded image exceeds maximum allowed size (2MB)."
+            );
+
+            request.getRequestDispatcher(PROFILE_VIEW)
+                    .forward(request, response);
             return;
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        } catch (Exception ex) {
+
+            getServletContext().log(
+                    "Failed to upload avatar.",
+                    ex
+            );
         }
 
         try {
-            ProfileUpdateResult result = userService.updateProfile(
-                    authUser.getId(), fullName, phoneNumber, gender, dob, avatarUrl);
+
+            ProfileUpdateResult result =
+                    userService.updateProfile(
+                            authUser.getId(),
+                            fullName,
+                            phoneNumber,
+                            gender,
+                            dob,
+                            avatarUrl
+                    );
+
             if (result.isSuccess()) {
-                session.setAttribute("authUser", result.getUser());
-                request.setAttribute("successMessage", result.getMessage());
+
+                session.setAttribute(
+                        "authUser",
+                        result.getUser()
+                );
+
+                request.setAttribute(
+                        "successMessage",
+                        result.getMessage()
+                );
+
             } else {
-                request.setAttribute("errorMessage", result.getMessage());
+
+                request.setAttribute(
+                        "errorMessage",
+                        result.getMessage()
+                );
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Database error occurred while updating your profile.");
+
+        } catch (SQLException ex) {
+
+            getServletContext().log(
+                    "Failed to update user profile.",
+                    ex
+            );
+
+            request.setAttribute(
+                    "errorMessage",
+                    "Database error occurred while updating your profile."
+            );
         }
 
-        request.getRequestDispatcher(PROFILE_VIEW).forward(request, response);
+        request.getRequestDispatcher(PROFILE_VIEW)
+                .forward(request, response);
     }
 
-    private void handleChangePassword(HttpServletRequest request, HttpServletResponse response,
-            User authUser)
-            throws ServletException, IOException {
+    private void handleChangePassword(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User authUser
+    ) throws ServletException, IOException {
+
         request.setAttribute("activeTab", "password");
 
-        String currentPassword = request.getParameter("currentPassword");
-        String newPassword = request.getParameter("newPassword");
-        String confirmPassword = request.getParameter("confirmPassword");
+        String currentPassword =
+                request.getParameter("currentPassword");
+
+        String newPassword =
+                request.getParameter("newPassword");
+
+        String confirmPassword =
+                request.getParameter("confirmPassword");
 
         try {
-            PasswordChangeResult result = userService.changePassword(
-                    authUser.getId(), currentPassword, newPassword, confirmPassword);
+
+            PasswordChangeResult result =
+                    userService.changePassword(
+                            authUser.getId(),
+                            currentPassword,
+                            newPassword,
+                            confirmPassword
+                    );
+
             if (result.isSuccess()) {
-                request.setAttribute("successMessage", result.getMessage());
+
+                request.setAttribute(
+                        "successMessage",
+                        result.getMessage()
+                );
+
             } else {
-                request.setAttribute("errorMessage", result.getMessage());
+
+                request.setAttribute(
+                        "errorMessage",
+                        result.getMessage()
+                );
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Database error occurred while changing your password.");
+
+        } catch (SQLException ex) {
+
+            getServletContext().log(
+                    "Failed to change user password.",
+                    ex
+            );
+
+            request.setAttribute(
+                    "errorMessage",
+                    "Database error occurred while changing your password."
+            );
         }
 
-        request.getRequestDispatcher(PROFILE_VIEW).forward(request, response);
+        request.getRequestDispatcher(PROFILE_VIEW)
+                .forward(request, response);
     }
 
+    // =========================================================================
+    // FILE UPLOAD HELPER
+    // =========================================================================
+
     private String getSubmittedFileName(Part part) {
-        String header = part.getHeader("content-disposition");
+
+        String header =
+                part.getHeader("content-disposition");
+
         if (header == null) {
             return null;
         }
+
         for (String token : header.split(";")) {
+
             if (token.trim().startsWith("filename")) {
-                return token.substring(token.indexOf('=') + 1).trim().replace("\"", "");
+
+                return token.substring(
+                        token.indexOf('=') + 1
+                ).trim().replace("\"", "");
             }
         }
+
         return null;
     }
 }
