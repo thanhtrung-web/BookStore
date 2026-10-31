@@ -1,5 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -191,13 +193,22 @@
                 </div>
 
                 <!-- 6. User Accounts & RBAC (UC-13, UC-14, TSK-28) -->
-                <button onclick="navigateAdminTo('users')" id="nav-users" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                        <span>User Accounts &amp; RBAC</span>
-                    </div>
-                    <span class="text-slate-400 text-[10px] font-bold">3.8k</span>
-                </button>
+                <button type="button"
+        onclick="navigateAdminTo('users')"
+        id="nav-users"
+        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition">
+
+    <div class="flex items-center gap-3">
+        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        <span>User Management</span>
+    </div>
+
+    <span class="text-slate-400 text-[10px] font-bold">3.8k</span>
+</button>
 
                 <!-- 7. Vouchers & Promotions (TSK-29) -->
                 <button onclick="navigateAdminTo('vouchers')" id="nav-vouchers" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition">
@@ -241,13 +252,7 @@
                     </h2>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <!-- Add Book Button (Primary Action) -->
-                    <button onclick="openAddBookModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                        <span>+ Add New Book</span>
-                    </button>
-                </div>
+                
             </div>
 
             <!-- Scrollable Main Container -->
@@ -493,51 +498,196 @@
                 <!-- VIEW 4: USERS & ROLES                                         -->
                 <!-- ============================================================= -->
                 <section id="view-users" class="hidden space-y-5">
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                        <div>
-                            <h3 class="text-base font-extrabold text-slate-900">User Account &amp; Role Governance (UC-13, UC-14)</h3>
-                            <p class="text-xs text-slate-400">Admin has exclusive root authority to lock accounts and assign roles</p>
-                        </div>
-                        <button onclick="showToast('Add staff user modal...')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition">+ Add Staff</button>
-                    </div>
 
-                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-                                <tr>
-                                    <th class="py-3 px-4">User</th>
-                                    <th class="py-3 px-3">Role</th>
-                                    <th class="py-3 px-3">Status</th>
-                                    <th class="py-3 px-4 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
-                                <tr>
-                                    <td class="py-3 px-4 font-bold">admin@bookstore.com</td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-extrabold text-[10px]">ADMIN</span></td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">ACTIVE</span></td>
-                                    <td class="py-3 px-4 text-right text-slate-400 font-bold">System Root</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3 px-4 font-bold">staff.sales@bookstore.com</td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-extrabold text-[10px]">STAFF</span></td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">ACTIVE</span></td>
+    <!-- Header -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+            <h3 class="text-base font-extrabold text-slate-900">
+                User Account Management (TSK-28)
+            </h3>
+            <p class="text-xs text-slate-400">
+                View user accounts and manage account status
+            </p>
+        </div>
+    </div>
+
+    <!-- Message -->
+    <c:if test="${not empty param.message}">
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-xs font-semibold">
+            <c:out value="${param.message}"/>
+        </div>
+    </c:if>
+
+    <!-- User Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-extrabold text-slate-900">
+                    All User Accounts
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Account information retrieved from database
+                </p>
+            </div>
+
+            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">
+                Total: ${fn:length(users)}
+            </span>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs">
+
+                <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-4">ID</th>
+                        <th class="py-3 px-3">Full Name</th>
+                        <th class="py-3 px-3">Email</th>
+                        <th class="py-3 px-3">Phone</th>
+                        <th class="py-3 px-3">Email Verified</th>
+                        <th class="py-3 px-3">Status</th>
+                        <th class="py-3 px-4">Created At</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+
+                    <c:choose>
+                        <c:when test="${empty users}">
+                            <tr>
+                                <td colspan="8" class="py-10 text-center text-slate-400">
+                                    No user accounts found.
+                                </td>
+                            </tr>
+                        </c:when>
+
+                        <c:otherwise>
+                            <c:forEach var="user" items="${users}">
+
+                                <tr class="hover:bg-slate-50 transition">
+
+                                    <td class="py-3 px-4 font-bold text-slate-500">
+                                        <c:out value="${user.id}"/>
+                                    </td>
+
+                                    <td class="py-3 px-3 font-bold text-slate-900">
+                                        <c:out value="${user.fullName}"/>
+                                    </td>
+
+                                    <td class="py-3 px-3">
+                                        <c:out value="${user.email}"/>
+                                    </td>
+
+                                    <td class="py-3 px-3">
+                                        <c:out value="${user.phoneNumber}"/>
+                                    </td>
+
+                                    <td class="py-3 px-3">
+                                        <c:choose>
+                                            <c:when test="${user.emailVerified}">
+                                                <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                                                    Verified
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px]">
+                                                    Not Verified
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+
+                                    <td class="py-3 px-3">
+                                        <c:choose>
+                                            <c:when test="${user.status eq 'ACTIVE'}">
+                                                <span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px]">
+                                                    ACTIVE
+                                                </span>
+                                            </c:when>
+                                            <c:when test="${user.status eq 'LOCKED'}">
+                                                <span class="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]">
+                                                    LOCKED
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
+                                                    <c:out value="${user.status}"/>
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+
+                                    <td class="py-3 px-4 text-slate-500">
+                                        <fmt:formatDate value="${user.createdAt}"
+                                                        pattern="dd/MM/yyyy HH:mm"/>
+                                    </td>
+
                                     <td class="py-3 px-4 text-right">
-                                        <button onclick="showToast('Account locked (UC-14).')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 font-bold">Lock</button>
+
+                                        <c:choose>
+                                            <c:when test="${user.status eq 'ACTIVE'}">
+                                                <form method="post"
+                                                      action="${pageContext.request.contextPath}/dashboard/admin/users"
+                                                      class="inline"
+                                                      onsubmit="return confirm('Are you sure you want to lock this account?');">
+
+                                                    <input type="hidden"
+                                                           name="userId"
+                                                           value="${user.id}"/>
+
+                                                    <input type="hidden"
+                                                           name="status"
+                                                           value="LOCKED"/>
+
+                                                    <button type="submit"
+                                                            class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white font-bold transition">
+                                                        Lock
+                                                    </button>
+                                                </form>
+                                            </c:when>
+
+                                            <c:when test="${user.status eq 'LOCKED'}">
+                                                <form method="post"
+                                                      action="${pageContext.request.contextPath}/dashboard/admin/users"
+                                                      class="inline"
+                                                      onsubmit="return confirm('Are you sure you want to unlock this account?');">
+
+                                                    <input type="hidden"
+                                                           name="userId"
+                                                            value="${user.id}"/>
+
+                                                    <input type="hidden"
+                                                           name="status"
+                                                           value="ACTIVE"/>
+
+                                                    <button type="submit"
+                                                            class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-bold transition">
+                                                        Unlock
+                                                    </button>
+                                                </form>
+                                            </c:when>
+
+                                            <c:otherwise>
+                                                <span class="text-slate-400 text-[10px]">
+                                                    Not available
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td class="py-3 px-4 font-bold">buyer.test@gmail.com</td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 font-extrabold text-[10px]">BUYER</span></td>
-                                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">ACTIVE</span></td>
-                                    <td class="py-3 px-4 text-right">
-                                        <button onclick="showToast('Account locked (UC-14).')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 font-bold">Lock</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+
+                            </c:forEach>
+                        </c:otherwise>
+                    </c:choose>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
 
                 <!-- ============================================================= -->
                 <!-- VIEW 5: VOUCHERS                                              -->
@@ -704,6 +854,14 @@
                 toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }, 3500);
         }
+        document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
+    const requestedView = params.get('view');
+
+    if (requestedView) {
+        navigateAdminTo(requestedView);
+    }
+});
     </script>
 
 </body>

@@ -23,16 +23,17 @@ import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 
 /**
- * Controller for User Management (Customer Profile, Password Change, and Management Dashboards).
+ * Controller for User Management (Customer Profile, Password Change, and
+ * Management Dashboards).
  * Handles:
- *  - GET  /profile               -> UC-43 View Own Profile
- *  - POST /profile               -> UC-44 Update Own Profile
- *  - GET  /change-password       -> UC-05 View Change Password Tab
- *  - POST /change-password       -> UC-05 Submit Password Change
- *  - GET  /dashboard/admin       -> Administrator Portal Dashboard
- *  - GET  /dashboard/staff       -> Staff Workspace Dashboard
- *  - GET  /dashboard/admin/users -> Administrator View All Users
- *  - POST /dashboard/admin/users -> Administrator Lock / Unlock User Status
+ * - GET /profile -> UC-43 View Own Profile
+ * - POST /profile -> UC-44 Update Own Profile
+ * - GET /change-password -> UC-05 View Change Password Tab
+ * - POST /change-password -> UC-05 Submit Password Change
+ * - GET /dashboard/admin -> Administrator Portal Dashboard
+ * - GET /dashboard/staff -> Staff Workspace Dashboard
+ * - GET /dashboard/admin/users -> Administrator View All Users
+ * - POST /dashboard/admin/users -> Administrator Lock / Unlock User Status
  */
 @WebServlet(name = "UserController", urlPatterns = {
         "/profile",
@@ -41,10 +42,9 @@ import java.sql.SQLException;
         "/dashboard/staff",
         "/dashboard/admin/users"
 })
-@MultipartConfig(
-        fileSizeThreshold = 1024 * 1024,      // 1 MB
-        maxFileSize = 2 * 1024 * 1024,        // 2 MB max per avatar
-        maxRequestSize = 5 * 1024 * 1024      // 5 MB max request
+@MultipartConfig(fileSizeThreshold = 1024 * 1024, // 1 MB
+        maxFileSize = 2 * 1024 * 1024, // 2 MB max per avatar
+        maxRequestSize = 5 * 1024 * 1024 // 5 MB max request
 )
 public class UserController extends HttpServlet {
 
@@ -66,13 +66,35 @@ public class UserController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
+        // Admin lock / unlock user account
+        // Redirect old user management URL to the integrated dashboard
+        if ("/dashboard/admin/users".equals(servletPath)) {
+            if (!isAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
 
+            response.sendRedirect(
+                    request.getContextPath() + "/dashboard/admin?view=users");
+            return;
+        }
         // 1. Admin Portal Dashboard
         if ("/dashboard/admin".equals(servletPath)) {
             if (!isAdmin(request)) {
                 response.sendRedirect(request.getContextPath() + "/login");
                 return;
             }
+
+            try {
+                request.setAttribute("users", userService.getAllUsers());
+            } catch (SQLException ex) {
+                getServletContext().log("Failed to load users for dashboard.", ex);
+                response.sendError(
+                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        "Unable to load user accounts.");
+                return;
+            }
+
             request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW).forward(request, response);
             return;
         }
@@ -88,14 +110,14 @@ public class UserController extends HttpServlet {
         }
 
         // 3. Admin user management list
-        if ("/dashboard/admin/users".equals(servletPath)) {
-            if (!isAdmin(request)) {
-                response.sendRedirect(request.getContextPath() + "/login");
-                return;
-            }
-            handleAdminListUsers(request, response);
-            return;
-        }
+        // if ("/dashboard/admin/users".equals(servletPath)) {
+        //     if (!isAdmin(request)) {
+        //         response.sendRedirect(request.getContextPath() + "/login");
+        //         return;
+        //     }
+        //     handleAdminListUsers(request, response);
+        //     return;
+        // }
 
         // 4. Customer profile & change password endpoints
         HttpSession session = request.getSession(false);
@@ -128,14 +150,48 @@ public class UserController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String servletPath = request.getServletPath();
-
-        // 1. Admin update user status endpoint
+        // Admin lock / unlock user account
         if ("/dashboard/admin/users".equals(servletPath)) {
             if (!isAdmin(request)) {
                 response.sendRedirect(request.getContextPath() + "/login");
                 return;
             }
+
             handleAdminUpdateUserStatus(request, response);
+            return;
+        }
+
+        // 1. Admin update user status endpoint
+        if ("/dashboard/admin".equals(servletPath)) {
+            if (!isAdmin(request)) {
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
+
+            try {
+                java.util.List<User> users = userService.getAllUsers();
+
+                getServletContext().log(
+                        "[ADMIN DASHBOARD] Servlet Path: " + servletPath);
+
+                getServletContext().log(
+                        "[ADMIN DASHBOARD] Users count: "
+                                + (users == null ? "NULL" : users.size()));
+
+                request.setAttribute("users", users);
+
+            } catch (SQLException ex) {
+                getServletContext().log(
+                        "[ADMIN DASHBOARD] Failed to load users.", ex);
+
+                response.sendError(
+                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        "Unable to load user accounts.");
+                return;
+            }
+
+            request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW)
+                    .forward(request, response);
             return;
         }
 
@@ -193,8 +249,10 @@ public class UserController extends HttpServlet {
             boolean updated = userService.updateUserStatus(userId, status);
             String message = updated ? "User account status updated successfully." : "User account was not found.";
 
-            response.sendRedirect(request.getContextPath() + "/dashboard/admin/users?message="
-                    + URLEncoder.encode(message, StandardCharsets.UTF_8.name()));
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/dashboard/admin?view=users&message="
+                            + URLEncoder.encode(message, StandardCharsets.UTF_8.name()));
 
         } catch (IllegalArgumentException ex) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user ID or account status.");
@@ -240,7 +298,7 @@ public class UserController extends HttpServlet {
     // =========================================================================
 
     private void handleUpdateProfile(HttpServletRequest request, HttpServletResponse response,
-                                     HttpSession session, User authUser)
+            HttpSession session, User authUser)
             throws ServletException, IOException {
         request.setAttribute("activeTab", "profile");
 
@@ -293,8 +351,7 @@ public class UserController extends HttpServlet {
 
         try {
             ProfileUpdateResult result = userService.updateProfile(
-                    authUser.getId(), fullName, phoneNumber, gender, dob, avatarUrl
-            );
+                    authUser.getId(), fullName, phoneNumber, gender, dob, avatarUrl);
             if (result.isSuccess()) {
                 session.setAttribute("authUser", result.getUser());
                 request.setAttribute("successMessage", result.getMessage());
@@ -310,7 +367,7 @@ public class UserController extends HttpServlet {
     }
 
     private void handleChangePassword(HttpServletRequest request, HttpServletResponse response,
-                                      User authUser)
+            User authUser)
             throws ServletException, IOException {
         request.setAttribute("activeTab", "password");
 
@@ -320,8 +377,7 @@ public class UserController extends HttpServlet {
 
         try {
             PasswordChangeResult result = userService.changePassword(
-                    authUser.getId(), currentPassword, newPassword, confirmPassword
-            );
+                    authUser.getId(), currentPassword, newPassword, confirmPassword);
             if (result.isSuccess()) {
                 request.setAttribute("successMessage", result.getMessage());
             } else {
