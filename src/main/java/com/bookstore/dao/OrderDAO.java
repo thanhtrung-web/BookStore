@@ -16,7 +16,90 @@ import java.util.Map;
 public class OrderDAO {
 
     private final StockDAO stockDAO = new StockDAO();
+public Map<String, Object> findOrderByCode(long userId, String orderCode)
+        throws SQLException {
 
+    String orderSql =
+            "SELECT id, order_code, recipient_name, recipient_phone, " +
+            "shipping_address, note, total_book_amount, shipping_fee, " +
+            "discount_amount, final_amount, payment_method, " +
+            "payment_status, order_status, created_at " +
+            "FROM dbo.orders WHERE user_id = ? AND order_code = ?";
+
+    String itemsSql =
+            "SELECT oi.book_id, oi.book_title, oi.unit_price, " +
+            "oi.quantity, oi.subtotal " +
+            "FROM dbo.order_items oi " +
+            "JOIN dbo.orders o ON o.id = oi.order_id " +
+            "WHERE o.id = ? AND o.user_id = ? ORDER BY oi.id";
+
+    try (Connection connection = DBContext.getConnection()) {
+        Map<String, Object> order = new LinkedHashMap<>();
+        long orderId;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(orderSql)) {
+
+            statement.setLong(1, userId);
+            statement.setString(2, orderCode);
+
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next()) {
+                    return null;
+                }
+
+                orderId = result.getLong("id");
+
+                order.put("id", orderId);
+                order.put("orderCode", result.getString("order_code"));
+                order.put("recipientName", result.getString("recipient_name"));
+                order.put("phone", result.getString("recipient_phone"));
+                order.put("shippingAddress", result.getString("shipping_address"));
+                order.put("note", result.getString("note"));
+                order.put("subtotal", result.getBigDecimal("total_book_amount"));
+                order.put("shippingFee", result.getBigDecimal("shipping_fee"));
+                order.put("discount", result.getBigDecimal("discount_amount"));
+                order.put("finalAmount", result.getBigDecimal("final_amount"));
+                order.put("paymentMethod", result.getString("payment_method"));
+                order.put("paymentStatus", result.getString("payment_status"));
+                order.put("orderStatus", result.getString("order_status"));
+                order.put("createdAt", result.getTimestamp("created_at"));
+            }
+        }
+
+        List<Map<String, Object>> items = new ArrayList<>();
+        long totalQuantity = 0;
+
+        try (PreparedStatement statement =
+                     connection.prepareStatement(itemsSql)) {
+
+            statement.setLong(1, orderId);
+            statement.setLong(2, userId);
+
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    Map<String, Object> item = new LinkedHashMap<>();
+
+                    int quantity = result.getInt("quantity");
+
+                    item.put("bookId", result.getLong("book_id"));
+                    item.put("title", result.getString("book_title"));
+                    item.put("unitPrice", result.getBigDecimal("unit_price"));
+                    item.put("quantity", quantity);
+                    item.put("subtotal", result.getBigDecimal("subtotal"));
+
+                    totalQuantity += quantity;
+                    items.add(item);
+                }
+            }
+        }
+
+        order.put("items", items);
+        order.put("totalQuantity", totalQuantity);
+
+        return order;
+    }
+}
     public String placeOrder(long userId,
                              String orderCode,
                              Map<String, String> form,

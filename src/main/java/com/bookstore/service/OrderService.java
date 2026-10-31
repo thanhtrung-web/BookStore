@@ -17,7 +17,21 @@ public class OrderService {
     private final CartDAO cartDAO = new CartDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final VoucherService voucherService = new VoucherService();
+public Map<String, Object> getOrderDetails(long userId, String orderCode)
+        throws SQLException {
 
+    if (userId <= 0 || orderCode == null) {
+        return null;
+    }
+
+    String normalizedCode = orderCode.trim();
+
+    if (!normalizedCode.matches("BS-[0-9a-fA-F]{32}")) {
+        return null;
+    }
+
+    return orderDAO.findOrderByCode(userId, normalizedCode);
+}
     public Map<String, Object> getCheckout(long userId, String voucherCode)
             throws SQLException {
 
