@@ -95,5 +95,16 @@
         <session-timeout>60</session-timeout>
         <tracking-mode>COOKIE</tracking-mode>
     </session-config>
+    
+    <servlet>
+    <servlet-name>CartController</servlet-name>
+    <servlet-class>com.bookstore.controller.CartController</servlet-class>
+</servlet>
+
+<servlet-mapping>
+    <servlet-name>CartController</servlet-name>
+    <url-pattern>/cart</url-pattern>
+    <url-pattern>/cart/add</url-pattern>
+</servlet-mapping>
 
 </web-app>
