@@ -106,11 +106,20 @@
     .cart-quantity-input {
         box-sizing: border-box;
         width: 65px;
+        height: 38px;
         padding: 8px 4px;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
         text-align: center;
         font: inherit;
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+
+    .cart-quantity-input::-webkit-inner-spin-button,
+    .cart-quantity-input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
 
     .cart-step-button {
@@ -124,14 +133,10 @@
         cursor: pointer;
     }
 
-    .cart-save-button {
-        padding: 8px 12px;
-        border: 0;
-        border-radius: 8px;
-        background: #2563eb;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
+    .cart-step-button:hover:not(:disabled) {
+        background: #eff6ff;
+        border-color: #2563eb;
+        color: #2563eb;
     }
 
     .cart-remove-button {
@@ -145,17 +150,13 @@
     }
 
     .cart-step-button:disabled,
-    .cart-save-button:disabled,
     .cart-quantity-input:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
 
-    .cart-quantity-hint {
-        margin-top: 7px;
-        font-size: 12px;
-        color: #64748b;
-        white-space: normal;
+    .cart-quantity-form[aria-busy="true"] {
+        opacity: 0.6;
     }
 
     .cart-summary-row {
@@ -189,6 +190,7 @@
         margin-top: 18px;
         border-radius: 10px;
         line-height: 1.6;
+        overflow-wrap: anywhere;
     }
 
     .cart-success {
@@ -203,72 +205,9 @@
         border: 1px solid #fecdd3;
     }
 
-    .cart-catalog {
-        margin-top: 28px;
-    }
-
-    .cart-books {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        gap: 18px;
-        margin-top: 20px;
-    }
-
-    .cart-book {
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        background: white;
-    }
-
-    .cart-cover {
-        display: grid;
-        place-items: center;
-        height: 100px;
-        margin-bottom: 16px;
-        border-radius: 10px;
-        background: #eff6ff;
-        font-size: 48px;
-    }
-
-    .cart-book h3 {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        overflow-wrap: anywhere;
-    }
-
-    .cart-price {
-        color: #2563eb;
-        font-size: 19px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .cart-book form {
-        margin-top: auto;
-        padding-top: 18px;
-    }
-
-    .cart-book label {
-        display: block;
-        font-size: 13px;
-        margin-bottom: 6px;
-    }
-
-    .cart-book input[type="number"] {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        margin-bottom: 10px;
-    }
-
     .cart-button {
         display: block;
+        box-sizing: border-box;
         width: 100%;
         padding: 11px 15px;
         border: 0;
@@ -277,12 +216,16 @@
         color: white;
         font-weight: 600;
         text-align: center;
+        text-decoration: none;
         cursor: pointer;
     }
 
-    .cart-button:hover,
-    .cart-save-button:hover {
+    .cart-button:hover {
         background: #1d4ed8;
+    }
+
+    .cart-checkout-button {
+        margin-top: 20px;
     }
 
     @media (max-width: 1000px) {
@@ -329,11 +272,13 @@
                         <div class="cart-empty">
                             <div class="cart-empty-icon">🛒</div>
                             <h2>Giỏ hàng đang trống</h2>
+
                             <p class="cart-muted">
-                                Chọn sách ở bên dưới để bắt đầu mua sắm.
+                                Hãy chọn sách để thêm vào giỏ hàng.
                             </p>
-                            <a href="#available-books" class="cart-back">
-                                Chọn sách ngay ↓
+
+                            <a href="${ctx}/home" class="cart-back">
+                                Tiếp tục mua sắm
                             </a>
                         </div>
                     </c:when>
@@ -380,6 +325,7 @@
                                                 <form action="${ctx}/cart"
                                                       method="post"
                                                       class="cart-quantity-form">
+
                                                     <input type="hidden"
                                                            name="csrfToken"
                                                            value="${sessionScope.cartCsrfToken}">
@@ -396,7 +342,7 @@
                                                             class="cart-step-button"
                                                             data-delta="-1"
                                                             aria-label="Giảm số lượng"
-                                                            <c:if test="${item.available le 0}">disabled</c:if>>
+                                                            <c:if test="${item.available le 0 or item.quantity le 1}">disabled</c:if>>
                                                         −
                                                     </button>
 
@@ -407,6 +353,7 @@
                                                            min="1"
                                                            max="${item.available gt 0 ? item.available : 1}"
                                                            step="1"
+                                                           inputmode="numeric"
                                                            aria-label="Số lượng sách"
                                                            required
                                                            <c:if test="${item.available le 0}">disabled</c:if>>
@@ -415,20 +362,10 @@
                                                             class="cart-step-button"
                                                             data-delta="1"
                                                             aria-label="Tăng số lượng"
-                                                            <c:if test="${item.available le 0}">disabled</c:if>>
+                                                            <c:if test="${item.available le 0 or item.quantity ge item.available}">disabled</c:if>>
                                                         +
                                                     </button>
-
-                                                    <button type="submit"
-                                                            class="cart-save-button"
-                                                            <c:if test="${item.available le 0}">disabled</c:if>>
-                                                        Lưu
-                                                    </button>
                                                 </form>
-
-                                                <p class="cart-quantity-hint">
-                                                    Bấm Lưu sau khi đổi số lượng.
-                                                </p>
                                             </td>
 
                                             <td class="cart-number">
@@ -442,6 +379,7 @@
                                                 <form action="${ctx}/cart"
                                                       method="post"
                                                       class="cart-remove-form">
+
                                                     <input type="hidden"
                                                            name="csrfToken"
                                                            value="${sessionScope.cartCsrfToken}">
@@ -491,106 +429,115 @@
                 </p>
             </aside>
         </div>
-
-        <section id="available-books" class="cart-catalog">
-            <h2>Chọn thêm sách</h2>
-
-            <p class="cart-muted">
-                Sách đang được bán và còn hàng tại cửa hàng.
-            </p>
-
-            <c:choose>
-                <c:when test="${empty books}">
-                    <div class="cart-panel">
-                        Hiện chưa có sách còn hàng để thêm vào giỏ.
-                    </div>
-                </c:when>
-
-                <c:otherwise>
-                    <div class="cart-books">
-                        <c:forEach var="book" items="${books}">
-                            <article class="cart-book">
-                                <div class="cart-cover" aria-hidden="true">📚</div>
-
-                                <h3>
-                                    <c:out value="${book.title}" />
-                                </h3>
-
-                                <div class="cart-price">
-                                    <fmt:formatNumber
-                                        value="${book.unitPrice}"
-                                        maxFractionDigits="0"
-                                    /> ₫
-                                </div>
-
-                                <p class="cart-muted">
-                                    Còn <c:out value="${book.available}" /> cuốn
-                                </p>
-
-                                <form action="${ctx}/cart/add" method="post">
-                                    <input type="hidden"
-                                           name="csrfToken"
-                                           value="${sessionScope.cartCsrfToken}">
-
-                                    <input type="hidden"
-                                           name="bookId"
-                                           value="${book.id}">
-
-                                    <label for="quantity-${book.id}">
-                                        Số lượng thêm
-                                    </label>
-
-                                    <input id="quantity-${book.id}"
-                                           type="number"
-                                           name="quantity"
-                                           value="1"
-                                           min="1"
-                                           max="${book.available}"
-                                           step="1"
-                                           required>
-
-                                    <button type="submit" class="cart-button">
-                                        Thêm vào giỏ hàng
-                                    </button>
-                                </form>
-                            </article>
-                        </c:forEach>
-                    </div>
-                </c:otherwise>
-            </c:choose>
-        </section>
     </c:if>
 </main>
 
 <script>
-    document.querySelectorAll(".cart-step-button").forEach(function (button) {
-        button.addEventListener("click", function () {
-            const form = button.closest("form");
-            const input = form.querySelector('input[name="quantity"]');
-            const minimum = Number(input.min);
-            const maximum = Number(input.max);
-            const delta = Number(button.dataset.delta);
-            const current = Number(input.value);
+    (function () {
+        let updatePending = false;
 
-            if (!Number.isInteger(current)) {
-                input.value = minimum;
-                return;
+        document.querySelectorAll(".cart-quantity-form").forEach(function (form) {
+            const input = form.elements.namedItem("quantity");
+            const originalQuantity = Number(input.value);
+            const buttons = form.querySelectorAll(".cart-step-button");
+
+            function saveQuantity() {
+                if (updatePending || input.disabled) {
+                    return;
+                }
+
+                if (!form.reportValidity()) {
+                    return;
+                }
+
+                if (Number(input.value) === originalQuantity) {
+                    return;
+                }
+
+                form.requestSubmit();
             }
 
-            input.value = Math.min(
-                maximum,
-                Math.max(minimum, current + delta)
-            );
-        });
-    });
+            form.addEventListener("submit", function (event) {
+                if (updatePending
+                        || input.disabled
+                        || !form.reportValidity()
+                        || Number(input.value) === originalQuantity) {
+                    event.preventDefault();
+                    return;
+                }
 
-    document.querySelectorAll(".cart-remove-form").forEach(function (form) {
-        form.addEventListener("submit", function (event) {
-            if (!window.confirm("Bạn muốn xóa sách này khỏi giỏ hàng?")) {
-                event.preventDefault();
+                updatePending = true;
+                form.setAttribute("aria-busy", "true");
+                input.readOnly = true;
+
+                document.querySelectorAll(".cart-step-button").forEach(function (button) {
+                    button.disabled = true;
+                });
+            });
+
+            buttons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (updatePending || input.disabled) {
+                        return;
+                    }
+
+                    const minimum = Number(input.min);
+                    const maximum = Number(input.max);
+                    const current = Number(input.value);
+                    const delta = Number(button.dataset.delta);
+
+                    if (!Number.isInteger(current)) {
+                        input.reportValidity();
+                        return;
+                    }
+
+                    const next = Math.min(
+                        maximum,
+                        Math.max(minimum, current + delta)
+                    );
+
+                    if (next === current) {
+                        return;
+                    }
+
+                    input.value = next;
+                    saveQuantity();
+                });
+            });
+
+            input.addEventListener("change", saveQuantity);
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    saveQuantity();
+                }
+            });
+        });
+
+        document.querySelectorAll(".cart-remove-form").forEach(function (form) {
+            form.addEventListener("submit", function (event) {
+                if (updatePending
+                        || !window.confirm("Bạn muốn xóa sách này khỏi giỏ hàng?")) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        document.querySelectorAll(".cart-checkout-button").forEach(function (link) {
+            link.addEventListener("click", function (event) {
+                if (updatePending) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                window.location.reload();
             }
         });
-    });
+    })();
 </script>
 
 <jsp:include page="/views/common/footer.jsp" />
