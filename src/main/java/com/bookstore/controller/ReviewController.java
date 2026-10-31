@@ -18,6 +18,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 @WebServlet("/reviews")
 public class ReviewController extends HttpServlet {
@@ -25,7 +26,11 @@ public class ReviewController extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final int PAGE_SIZE = 5;
 
-    private final ReviewService reviewService = new ReviewService();
+    private static final String REVIEW_CSRF_TOKEN =
+            "reviewCsrfToken";
+
+    private final ReviewService reviewService =
+            new ReviewService();
 
     @Override
     protected void doGet(HttpServletRequest request,
@@ -35,121 +40,42 @@ public class ReviewController extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         try {
-            long bookId = parseLong(request.getParameter("bookId"), 0);
+            long bookId = parseLong(
+                    request.getParameter("bookId"), 0);
 
             if (bookId <= 0) {
                 response.sendError(
                         HttpServletResponse.SC_BAD_REQUEST,
-                        "Book ID không hợp lệ.");
+                        "Invalid book ID.");
                 return;
             }
 
-            ReviewBook book = reviewService.getBook(bookId);
+            // Redirect to BookController so the book detail page
+            // can load all required book and cart information.
+            StringBuilder redirectUrl = new StringBuilder(
+                    request.getContextPath()
+                            + "/book-detail?id=" + bookId);
 
-            if (book == null) {
-                response.sendError(
-                        HttpServletResponse.SC_NOT_FOUND,
-                        "Không tìm thấy sách.");
-                return;
+            copyParameter(request, redirectUrl, "sort");
+            copyParameter(request, redirectUrl, "rating");
+
+            String page = request.getParameter("page");
+            if (page != null && !page.trim().isEmpty()) {
+                redirectUrl.append("&reviewPage=")
+                        .append(encode(page));
             }
 
-            request.setAttribute("bookId", book.getId());
-            request.setAttribute("bookTitle", book.getTitle());
-            request.setAttribute("bookDescription", book.getDescription());
-
-            String sort = request.getParameter("sort");
-
-            if (!"highest".equals(sort) && !"lowest".equals(sort)) {
-                sort = "newest";
+            String action = request.getParameter("action");
+            if ("edit".equals(action)) {
+                redirectUrl.append("&action=edit");
+                copyParameter(request, redirectUrl, "reviewId");
             }
 
-            Integer ratingFilter = parseRating(
-                    request.getParameter("rating"));
+            response.sendRedirect(redirectUrl.toString());
 
-            int page = (int) Math.max(
-                    1, parseLong(request.getParameter("page"), 1));
-
-            int totalReviews = reviewService.countReviews(
-                    bookId, ratingFilter);
-
-            int totalPages = Math.max(
-                    1, (int) Math.ceil(totalReviews / (double) PAGE_SIZE));
-
-            page = Math.min(page, totalPages);
-
-            List<Review> reviews = reviewService.getReviews(
-                    bookId, page, PAGE_SIZE, sort, ratingFilter);
-
-            request.setAttribute("reviews", reviews);
-            request.setAttribute("averageRating",
-                    reviewService.getAverageRating(bookId));
-            request.setAttribute("totalReviews", totalReviews);
-            request.setAttribute("totalPages", totalPages);
-            request.setAttribute("currentPage", page);
-            request.setAttribute("sort", sort);
-            request.setAttribute("ratingFilter", ratingFilter);
-
-            HttpSession session = request.getSession(false);
-            User user = null;
-
-            if (session != null) {
-                Object authUser = session.getAttribute("authUser");
-
-                if (authUser instanceof User) {
-                    user = (User) authUser;
-                }
-            }
-
-            boolean isBuyer = user != null && user.hasRole("BUYER");
-            request.setAttribute("isBuyer", isBuyer);
-
-            Review ownReview = null;
-            boolean canWriteReview = false;
-
-            if (isBuyer) {
-                ownReview = reviewService.getOwnReview(
-                        user.getId(), bookId);
-
-                canWriteReview = reviewService.canWriteReview(
-                        user.getId(), bookId);
-            }
-
-            request.setAttribute("ownReview", ownReview);
-            request.setAttribute("canWriteReview", canWriteReview);
-
-            if ("edit".equals(request.getParameter("action"))) {
-                long reviewId = parseLong(
-                        request.getParameter("reviewId"), 0);
-
-                Review editReview =
-                        reviewService.getReviewById(reviewId);
-
-                if (editReview == null
-                        || user == null
-                        || editReview.getUserId() == null
-                        || editReview.getUserId().longValue()
-                                != user.getId()
-                        || !"APPROVED".equalsIgnoreCase(
-                                editReview.getStatus())
-                        || editReview.getBookId() == null
-                        || editReview.getBookId().longValue()
-                                != bookId) {
-
-                    response.sendError(
-                            HttpServletResponse.SC_FORBIDDEN,
-                            "Bạn không có quyền sửa đánh giá này.");
-                    return;
-                }
-
-                request.setAttribute("editReview", editReview);
-            }
-
-            request.getRequestDispatcher(
-                    "/views/book-detail.jsp").forward(request, response);
-
-        } catch (SQLException e) {
+        } catch (RuntimeException e) {
             throw new ServletException(
-                    "Không thể tải thông tin đánh giá.", e);
+                    "Unable to redirect to book details.", e);
         }
     }
 
@@ -160,20 +86,16 @@ public class ReviewController extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        long bookId = parseLong(request.getParameter("bookId"), 0);
+        long bookId = parseLong(
+                request.getParameter("bookId"), 0);
+
         String action = request.getParameter("action");
 
         HttpSession session = request.getSession(false);
-        User user = null;
 
-        if (session != null) {
-            Object authUser = session.getAttribute("authUser");
+        User user = getAuthenticatedUser(session);
 
-            if (authUser instanceof User) {
-                user = (User) authUser;
-            }
-        }
-
+        // Require a logged-in Buyer.
         if (user == null || !user.hasRole("BUYER")) {
             response.sendRedirect(
                     request.getContextPath() + "/login");
@@ -183,7 +105,15 @@ public class ReviewController extends HttpServlet {
         if (bookId <= 0) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Book ID không hợp lệ.");
+                    "Invalid book ID.");
+            return;
+        }
+
+        // Verify CSRF token.
+        if (!isValidCsrfToken(request, session)) {
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN,
+                    "Invalid security token. Please reload the page.");
             return;
         }
 
@@ -191,6 +121,7 @@ public class ReviewController extends HttpServlet {
             boolean success;
 
             if ("create".equals(action)) {
+
                 int rating = (int) parseLong(
                         request.getParameter("rating"), 0);
 
@@ -201,6 +132,7 @@ public class ReviewController extends HttpServlet {
                         request.getParameter("comment"));
 
             } else if ("update".equals(action)) {
+
                 long reviewId = parseLong(
                         request.getParameter("reviewId"), 0);
 
@@ -210,12 +142,10 @@ public class ReviewController extends HttpServlet {
                 Review review =
                         reviewService.getReviewById(reviewId);
 
-                if (review == null
-                        || review.getBookId() == null
-                        || review.getBookId().longValue() != bookId) {
+                if (!isReviewForBook(review, bookId)) {
                     response.sendError(
                             HttpServletResponse.SC_NOT_FOUND,
-                            "Không tìm thấy đánh giá.");
+                            "Review not found.");
                     return;
                 }
 
@@ -226,18 +156,17 @@ public class ReviewController extends HttpServlet {
                         request.getParameter("comment"));
 
             } else if ("delete".equals(action)) {
+
                 long reviewId = parseLong(
                         request.getParameter("reviewId"), 0);
 
                 Review review =
                         reviewService.getReviewById(reviewId);
 
-                if (review == null
-                        || review.getBookId() == null
-                        || review.getBookId().longValue() != bookId) {
+                if (!isReviewForBook(review, bookId)) {
                     response.sendError(
                             HttpServletResponse.SC_NOT_FOUND,
-                            "Không tìm thấy đánh giá.");
+                            "Review not found.");
                     return;
                 }
 
@@ -247,29 +176,87 @@ public class ReviewController extends HttpServlet {
             } else {
                 response.sendError(
                         HttpServletResponse.SC_BAD_REQUEST,
-                        "Thao tác không hợp lệ.");
+                        "Invalid review action.");
                 return;
             }
 
             String message = success
-                    ? "Thao tác đánh giá thành công."
-                    : "Không thể thực hiện thao tác đánh giá.";
+                    ? "Review operation completed successfully."
+                    : "Unable to complete the review operation.";
 
             redirectWithMessage(
                     request, response, bookId, message);
 
-        } catch (IllegalArgumentException | IllegalStateException e) {
+        } catch (IllegalArgumentException
+                 | IllegalStateException e) {
+
             redirectWithMessage(
                     request, response, bookId, e.getMessage());
 
         } catch (SecurityException e) {
+
             response.sendError(
-                    HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+                    HttpServletResponse.SC_FORBIDDEN,
+                    e.getMessage());
 
         } catch (SQLException e) {
+
             throw new ServletException(
-                    "Không thể lưu đánh giá.", e);
+                    "Unable to save review.", e);
         }
+    }
+
+    private User getAuthenticatedUser(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        Object authUser = session.getAttribute("authUser");
+
+        if (authUser instanceof User) {
+            return (User) authUser;
+        }
+
+        return null;
+    }
+
+    private boolean isReviewForBook(Review review, long bookId) {
+        return review != null
+                && review.getBookId() != null
+                && review.getBookId().longValue() == bookId;
+    }
+
+    private boolean isValidCsrfToken(
+            HttpServletRequest request,
+            HttpSession session) {
+
+        if (session == null) {
+            return false;
+        }
+
+        String sessionToken = (String) session.getAttribute(
+                REVIEW_CSRF_TOKEN);
+
+        String requestToken = request.getParameter(
+                REVIEW_CSRF_TOKEN);
+
+        return sessionToken != null
+                && requestToken != null
+                && sessionToken.equals(requestToken);
+    }
+
+    private String getOrCreateCsrfToken(HttpSession session) {
+        String token = (String) session.getAttribute(
+                REVIEW_CSRF_TOKEN);
+
+        if (token == null || token.trim().isEmpty()) {
+            token = UUID.randomUUID().toString();
+
+            session.setAttribute(
+                    REVIEW_CSRF_TOKEN, token);
+        }
+
+        return token;
     }
 
     private void redirectWithMessage(
@@ -278,14 +265,33 @@ public class ReviewController extends HttpServlet {
             long bookId,
             String message) throws IOException {
 
-        String encodedMessage = URLEncoder.encode(
-                message == null ? "" : message,
-                StandardCharsets.UTF_8.name());
+        String encodedMessage = encode(
+                message == null ? "" : message);
 
         response.sendRedirect(
                 request.getContextPath()
-                        + "/reviews?bookId=" + bookId
+                        + "/book-detail?id=" + bookId
                         + "&message=" + encodedMessage);
+    }
+
+    private void copyParameter(
+            HttpServletRequest request,
+            StringBuilder url,
+            String parameterName) {
+
+        String value = request.getParameter(parameterName);
+
+        if (value != null && !value.trim().isEmpty()) {
+            url.append("&")
+                    .append(parameterName)
+                    .append("=")
+                    .append(encode(value));
+        }
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(
+                value, StandardCharsets.UTF_8);
     }
 
     private long parseLong(String value, long defaultValue) {
@@ -293,19 +299,6 @@ public class ReviewController extends HttpServlet {
             return Long.parseLong(value);
         } catch (NumberFormatException | NullPointerException e) {
             return defaultValue;
-        }
-    }
-
-    private Integer parseRating(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-
-        try {
-            int rating = Integer.parseInt(value);
-            return rating >= 1 && rating <= 5 ? rating : null;
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 }
