@@ -215,12 +215,6 @@
         </div>
     </c:if>
 
-    <c:if test="${reviewReady}">
-        <div class="checkout-success" role="status">
-            Thông tin nhận hàng hợp lệ.
-        </div>
-    </c:if>
-
     <c:if test="${checkoutLoaded}">
         <c:choose>
             <c:when test="${empty checkout.items}">
@@ -242,7 +236,9 @@
                     <input type="hidden"
                            name="csrfToken"
                            value="${sessionScope.checkoutCsrfToken}">
-
+                    <input type="hidden"
+                            name="orderToken"
+                            value="${sessionScope.orderRequestToken}">
                     <div class="checkout-grid">
                         <section class="checkout-panel">
                             <h2>Thông tin nhận hàng</h2>
@@ -426,9 +422,18 @@
                                 </span>
                             </div>
 
-                            <div class="checkout-row checkout-total">
-                                <span>Tạm tính</span>
+                                                        <div class="checkout-row">
+                                <span>Phí vận chuyển</span>
+                                <span>
+                                    <fmt:formatNumber
+                                        value="${checkout.shippingFee}"
+                                        maxFractionDigits="0"
+                                    /> ₫
+                                </span>
+                            </div>
 
+                            <div class="checkout-row checkout-total">
+                                <span>Tổng thanh toán</span>
                                 <span>
                                     <fmt:formatNumber
                                         value="${checkout.finalAmount}"
@@ -437,16 +442,17 @@
                                 </span>
                             </div>
 
-                            <p class="checkout-muted">
-                                Chưa bao gồm phí vận chuyển.
-                            </p>
+                            <div class="checkout-row">
+                                <span>Thanh toán</span>
+                                <strong>Thanh toán khi nhận hàng (COD)</strong>
+                            </div>
 
                             <button type="submit"
                                     name="action"
-                                    value="review"
+                                    value="placeOrder"
                                     class="checkout-button checkout-submit"
                                     <c:if test="${not checkout.stockValid}">disabled</c:if>>
-                                Kiểm tra thông tin
+                                Xác nhận đặt hàng
                             </button>
                         </aside>
                     </div>

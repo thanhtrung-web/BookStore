@@ -427,13 +427,13 @@
                 <p class="cart-muted">
                     Tạm tính tiền sách, chưa bao gồm phí vận chuyển.
                 </p>
+
                 <c:if test="${not empty cart.items}">
                     <a href="${ctx}/order/checkout"
-                    class="cart-button"
-                    style="margin-top: 20px; text-decoration: none;">
-            Tiến hành đặt hàng
-    </a>
-</c:if>
+                       class="cart-button cart-checkout-button">
+                        Tiến hành đặt hàng
+                    </a>
+                </c:if>
             </aside>
         </div>
     </c:if>
