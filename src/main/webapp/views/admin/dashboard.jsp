@@ -176,7 +176,9 @@
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                         <span>Orders &amp; Invoices</span>
                     </div>
-                    <span class="bg-blue-100 text-blue-700 font-bold text-[10px] px-2 py-0.5 rounded-full">1,842</span>
+                    <span class="bg-blue-100 text-blue-700 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                        <fmt:formatNumber value="${reportSummary.totalOrders}" groupingUsed="true"/>
+                    </span>
                 </button>
 
                 <!-- 5. Return & Refund Approvals (TSK-33) -->
@@ -277,18 +279,24 @@
                         </div>
                     </div>
 
-                    <!-- 4 Executive KPIs -->
+                    <!-- 4 Executive KPIs: loaded from ReportController -->
+                    <c:if test="${not empty reportError}">
+                        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm">
+                            <strong>Report loading error:</strong>
+                            <c:out value="${reportError}"/>
+                        </div>
+                    </c:if>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover-card">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Gross Revenue</span>
                                 <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base font-bold">💰</span>
                             </div>
-                            <div class="mt-3 flex items-baseline justify-between">
-                                <h3 class="text-2xl font-black text-slate-900">$128,450.00</h3>
-                                <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">↑ 14.8%</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-1">vs last month ($111,890.00)</p>
+                            <h3 class="mt-3 text-2xl font-black text-slate-900">
+                                <fmt:formatNumber value="${reportSummary.totalRevenue}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Paid and delivered orders</p>
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover-card">
@@ -296,11 +304,10 @@
                                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Orders</span>
                                 <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base font-bold">📦</span>
                             </div>
-                            <div class="mt-3 flex items-baseline justify-between">
-                                <h3 class="text-2xl font-black text-slate-900">1,842</h3>
-                                <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">24 new today</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-1">98.2% fulfillment rate</p>
+                            <h3 class="mt-3 text-2xl font-black text-slate-900">
+                                <fmt:formatNumber value="${reportSummary.totalOrders}" groupingUsed="true"/>
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Paid and delivered orders</p>
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover-card">
@@ -308,11 +315,10 @@
                                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Books in Catalog</span>
                                 <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base font-bold">📚</span>
                             </div>
-                            <div class="mt-3 flex items-baseline justify-between">
-                                <h3 class="text-2xl font-black text-slate-900">1,248</h3>
-                                <span class="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">12 Low Stock</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-1">Total 12,480 units stored</p>
+                            <h3 class="mt-3 text-2xl font-black text-slate-900">
+                                <fmt:formatNumber value="${reportSummary.totalBooks}" groupingUsed="true"/>
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Non-deleted books</p>
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover-card">
@@ -320,11 +326,10 @@
                                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Customers</span>
                                 <span class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base font-bold">👥</span>
                             </div>
-                            <div class="mt-3 flex items-baseline justify-between">
-                                <h3 class="text-2xl font-black text-slate-900">3,892</h3>
-                                <span class="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">+185 this week</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-1">Verified email accounts</p>
+                            <h3 class="mt-3 text-2xl font-black text-slate-900">
+                                <fmt:formatNumber value="${reportSummary.activeCustomers}" groupingUsed="true"/>
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Active buyer accounts</p>
                         </div>
                     </div>
 
@@ -352,27 +357,37 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
-                                        <tr>
-                                            <td class="py-3 px-3 font-bold text-slate-900">Atomic Habits (James Clear)</td>
-                                            <td class="py-3 px-3 font-bold text-blue-600">842 units</td>
-                                            <td class="py-3 px-3">$12.99</td>
-                                            <td class="py-3 px-3 font-bold text-emerald-600">$10,937.58</td>
-                                            <td class="py-3 px-3 text-right text-rose-600 font-bold">3 left</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-3 px-3 font-bold text-slate-900">Clean Code (Robert C. Martin)</td>
-                                            <td class="py-3 px-3 font-bold text-blue-600">315 units</td>
-                                            <td class="py-3 px-3">$39.99</td>
-                                            <td class="py-3 px-3 font-bold text-emerald-600">$12,596.85</td>
-                                            <td class="py-3 px-3 text-right text-rose-600 font-bold">5 left</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="py-3 px-3 font-bold text-slate-900">Dune (Frank Herbert)</td>
-                                            <td class="py-3 px-3 font-bold text-blue-600">520 units</td>
-                                            <td class="py-3 px-3">$14.99</td>
-                                            <td class="py-3 px-3 font-bold text-emerald-600">$7,794.80</td>
-                                            <td class="py-3 px-3 text-right text-emerald-600 font-bold">142 left</td>
-                                        </tr>
+                                        <c:choose>
+                                            <c:when test="${not empty topBooks}">
+                                                <c:forEach var="book" items="${topBooks}">
+                                                    <tr class="hover:bg-slate-50">
+                                                        <td class="py-3 px-3">
+                                                            <div class="font-bold text-slate-900"><c:out value="${book.bookTitle}"/></div>
+                                                            <div class="text-[11px] text-slate-500"><c:out value="${book.authors}"/></div>
+                                                        </td>
+                                                        <td class="py-3 px-3 font-bold text-blue-600">
+                                                            <fmt:formatNumber value="${book.quantitySold}" groupingUsed="true"/> units
+                                                        </td>
+                                                        <td class="py-3 px-3">
+                                                            <fmt:formatNumber value="${book.unitPrice}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
+                                                        </td>
+                                                        <td class="py-3 px-3 font-bold text-emerald-600">
+                                                            <fmt:formatNumber value="${book.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
+                                                        </td>
+                                                        <td class="py-3 px-3 text-right font-bold ${book.stock le 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                                                            <fmt:formatNumber value="${book.stock}" groupingUsed="true"/>
+                                                        </td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <tr>
+                                                    <td colspan="5" class="py-8 px-3 text-center text-slate-400">
+                                                        No best-selling book data is available for the selected period.
+                                                    </td>
+                                                </tr>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </tbody>
                                 </table>
                             </div>
@@ -734,10 +749,80 @@
                 <section id="view-analytics" class="hidden space-y-5">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
                         <h3 class="text-base font-extrabold text-slate-900">Financial &amp; Revenue Analytics (TSK-31)</h3>
-                        <p class="text-xs text-slate-400">Monthly gross profits, publisher royalties, and tax computations</p>
+                        <p class="text-xs text-slate-400 mt-1">Revenue and order statistics from paid and delivered orders</p>
+                        <div class="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
+                            <div><span class="font-bold">From:</span>
+                                <fmt:formatDate value="${reportStartDate}" pattern="dd/MM/yyyy"/>
+                            </div>
+                            <div><span class="font-bold">To:</span>
+                                <fmt:formatDate value="${reportEndDate}" pattern="dd/MM/yyyy"/>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-6 bg-white rounded-2xl border border-slate-200/80 text-center text-slate-500 text-xs">
-                        📊 Interactive charts rendered from transaction ledger data.
+
+                    <c:if test="${not empty reportError}">
+                        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-sm">
+                            <c:out value="${reportError}"/>
+                        </div>
+                    </c:if>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Revenue</p>
+                            <p class="mt-2 text-2xl font-black text-emerald-600">
+                                <fmt:formatNumber value="${reportSummary.totalRevenue}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
+                            </p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Orders</p>
+                            <p class="mt-2 text-2xl font-black text-blue-600">
+                                <fmt:formatNumber value="${reportSummary.totalOrders}" groupingUsed="true"/>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100">
+                            <h4 class="text-sm font-extrabold text-slate-900">Revenue by Month</h4>
+                            <p class="text-xs text-slate-400 mt-1">Monthly revenue and completed order count</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-bold">
+                                    <tr>
+                                        <th class="px-5 py-3">Period</th>
+                                        <th class="px-5 py-3 text-right">Orders</th>
+                                        <th class="px-5 py-3 text-right">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-700">
+                                    <c:choose>
+                                        <c:when test="${not empty revenueReport}">
+                                            <c:forEach var="item" items="${revenueReport}">
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="px-5 py-3 font-semibold">
+                                                        <fmt:formatDate value="${item.reportDate}" pattern="MM/yyyy"/>
+                                                    </td>
+                                                    <td class="px-5 py-3 text-right">
+                                                        <fmt:formatNumber value="${item.orderCount}" groupingUsed="true"/>
+                                                    </td>
+                                                    <td class="px-5 py-3 text-right font-bold text-emerald-600">
+                                                        <fmt:formatNumber value="${item.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
+                                                    </td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <tr>
+                                                <td colspan="3" class="px-5 py-10 text-center text-slate-400">
+                                                    No revenue data found for this period. Revenue is counted only from orders with PAID and DELIVERED status.
+                                                </td>
+                                            </tr>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
