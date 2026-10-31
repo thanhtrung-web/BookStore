@@ -236,4 +236,174 @@ public class CartDAO {
 
         return 0;
     }
+    public void updateQuantity(long userId, long itemId, int quantity)
+        throws SQLException {
+
+    try (Connection connection = DBContext.getConnection()) {
+        connection.setAutoCommit(false);
+
+        try {
+            Long cartId = null;
+
+            String cartSql =
+                    "SELECT id FROM dbo.carts WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE user_id = ?";
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(cartSql)) {
+
+                statement.setLong(1, userId);
+
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) {
+                        cartId = result.getLong("id");
+                    }
+                }
+            }
+
+            if (cartId == null) {
+                throw new IllegalArgumentException(
+                        "Giỏ hàng không tồn tại."
+                );
+            }
+
+            Long bookId = null;
+
+            String itemSql =
+                    "SELECT book_id FROM dbo.cart_items " +
+                    "WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE id = ? AND cart_id = ?";
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(itemSql)) {
+
+                statement.setLong(1, itemId);
+                statement.setLong(2, cartId);
+
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) {
+                        bookId = result.getLong("book_id");
+                    }
+                }
+            }
+
+            if (bookId == null) {
+                throw new IllegalArgumentException(
+                        "Sách không còn trong giỏ hàng của bạn."
+                );
+            }
+
+            int available = getAvailableStock(connection, bookId);
+
+            if (available <= 0) {
+                throw new IllegalArgumentException(
+                        "Sách đã hết hàng hoặc ngừng bán. Bạn có thể xóa sách khỏi giỏ."
+                );
+            }
+
+            if (quantity > available) {
+                throw new IllegalArgumentException(
+                        "Chỉ còn " + available + " cuốn có thể mua."
+                );
+            }
+
+            String updateSql =
+                    "UPDATE dbo.cart_items SET quantity = ? " +
+                    "WHERE id = ? AND cart_id = ?";
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(updateSql)) {
+
+                statement.setInt(1, quantity);
+                statement.setLong(2, itemId);
+                statement.setLong(3, cartId);
+                statement.executeUpdate();
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE dbo.carts SET updated_at = GETDATE() WHERE id = ?")) {
+
+                statement.setLong(1, cartId);
+                statement.executeUpdate();
+            }
+
+            connection.commit();
+
+        } catch (SQLException | RuntimeException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException rollbackError) {
+                e.addSuppressed(rollbackError);
+            }
+
+            throw e;
+        }
+    }
+}
+
+public void removeItem(long userId, long itemId) throws SQLException {
+    try (Connection connection = DBContext.getConnection()) {
+        connection.setAutoCommit(false);
+
+        try {
+            Long cartId = null;
+
+            String cartSql =
+                    "SELECT id FROM dbo.carts WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE user_id = ?";
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(cartSql)) {
+
+                statement.setLong(1, userId);
+
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next()) {
+                        cartId = result.getLong("id");
+                    }
+                }
+            }
+
+            if (cartId == null) {
+                throw new IllegalArgumentException(
+                        "Giỏ hàng không tồn tại."
+                );
+            }
+
+            String deleteSql =
+                    "DELETE FROM dbo.cart_items WHERE id = ? AND cart_id = ?";
+
+            try (PreparedStatement statement =
+                         connection.prepareStatement(deleteSql)) {
+
+                statement.setLong(1, itemId);
+                statement.setLong(2, cartId);
+
+                if (statement.executeUpdate() == 0) {
+                    throw new IllegalArgumentException(
+                            "Sách không còn trong giỏ hàng của bạn."
+                    );
+                }
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE dbo.carts SET updated_at = GETDATE() WHERE id = ?")) {
+
+                statement.setLong(1, cartId);
+                statement.executeUpdate();
+            }
+
+            connection.commit();
+
+        } catch (SQLException | RuntimeException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException rollbackError) {
+                e.addSuppressed(rollbackError);
+            }
+
+            throw e;
+        }
+    }
+}
 }

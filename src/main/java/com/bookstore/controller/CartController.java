@@ -39,11 +39,14 @@ public class CartController extends HttpServlet {
 
         synchronized (session) {
             request.setAttribute(
-                    "successMessage", session.getAttribute("cartSuccess")
+                    "successMessage",
+                    session.getAttribute("cartSuccess")
             );
             request.setAttribute(
-                    "errorMessage", session.getAttribute("cartError")
+                    "errorMessage",
+                    session.getAttribute("cartError")
             );
+
             session.removeAttribute("cartSuccess");
             session.removeAttribute("cartError");
         }
@@ -54,10 +57,12 @@ public class CartController extends HttpServlet {
             request.setAttribute("cart", cart);
             request.setAttribute("books", cartService.getBooks());
             request.setAttribute("cartLoaded", true);
+
             session.setAttribute("cartCount", cart.get("totalQuantity"));
 
         } catch (SQLException e) {
             getServletContext().log("Could not load cart.", e);
+
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             request.setAttribute(
                     "errorMessage",
@@ -94,25 +99,56 @@ public class CartController extends HttpServlet {
             return;
         }
 
-        try {
-            cartService.addToCart(
-                    user.getId(),
-                    request.getParameter("bookId"),
-                    request.getParameter("quantity")
-            );
+        session.removeAttribute("cartSuccess");
+        session.removeAttribute("cartError");
 
-            session.setAttribute(
-                    "cartSuccess", "Đã thêm sách vào giỏ hàng."
-            );
+        try {
+            String action = request.getParameter("action");
+            String successMessage;
+
+            if ("/cart/add".equals(request.getServletPath())) {
+                cartService.addToCart(
+                        user.getId(),
+                        request.getParameter("bookId"),
+                        request.getParameter("quantity")
+                );
+
+                successMessage = "Đã thêm sách vào giỏ hàng.";
+
+            } else if ("update".equals(action)) {
+                cartService.updateQuantity(
+                        user.getId(),
+                        request.getParameter("itemId"),
+                        request.getParameter("quantity")
+                );
+
+                successMessage = "Đã cập nhật số lượng sách.";
+
+            } else if ("remove".equals(action)) {
+                cartService.removeItem(
+                        user.getId(),
+                        request.getParameter("itemId")
+                );
+
+                successMessage = "Đã xóa sách khỏi giỏ hàng.";
+
+            } else {
+                throw new IllegalArgumentException(
+                        "Thao tác giỏ hàng không hợp lệ."
+                );
+            }
+
+            session.setAttribute("cartSuccess", successMessage);
 
         } catch (IllegalArgumentException e) {
             session.setAttribute("cartError", e.getMessage());
 
         } catch (SQLException e) {
-            getServletContext().log("Could not add book to cart.", e);
+            getServletContext().log("Could not modify cart.", e);
+
             session.setAttribute(
                     "cartError",
-                    "Không thể thêm sách lúc này. Vui lòng thử lại sau."
+                    "Không thể cập nhật giỏ hàng lúc này. Vui lòng thử lại sau."
             );
         }
 
@@ -143,7 +179,8 @@ public class CartController extends HttpServlet {
         synchronized (session) {
             if (session.getAttribute("cartCsrfToken") == null) {
                 session.setAttribute(
-                        "cartCsrfToken", UUID.randomUUID().toString()
+                        "cartCsrfToken",
+                        UUID.randomUUID().toString()
                 );
             }
         }

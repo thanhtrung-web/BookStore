@@ -10,7 +10,7 @@
 <style>
     .cart-page {
         width: 94%;
-        max-width: 1180px;
+        max-width: 1280px;
         margin: 32px auto 60px;
         color: #1e293b;
     }
@@ -41,18 +41,18 @@
 
     .cart-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 290px;
+        grid-template-columns: minmax(0, 1fr) 280px;
         gap: 24px;
         margin-top: 24px;
         align-items: start;
     }
 
     .cart-panel {
+        min-width: 0;
         padding: 24px;
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 18px;
-        min-width: 0;
     }
 
     .cart-table-wrap {
@@ -76,6 +76,7 @@
         background: #f8fafc;
         color: #64748b;
         font-size: 13px;
+        white-space: nowrap;
     }
 
     .cart-table .cart-number {
@@ -84,6 +85,7 @@
     }
 
     .cart-title {
+        min-width: 130px;
         font-weight: 600;
         overflow-wrap: anywhere;
     }
@@ -92,6 +94,69 @@
         margin-top: 7px;
         color: #b45309;
         font-size: 13px;
+    }
+
+    .cart-quantity-form {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .cart-quantity-input {
+        box-sizing: border-box;
+        width: 65px;
+        height: 38px;
+        padding: 8px 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        text-align: center;
+        font: inherit;
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+
+    .cart-quantity-input::-webkit-inner-spin-button,
+    .cart-quantity-input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .cart-step-button {
+        width: 32px;
+        height: 36px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #1e293b;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .cart-step-button:hover:not(:disabled) {
+        background: #eff6ff;
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+
+    .cart-remove-button {
+        padding: 8px 12px;
+        border: 1px solid #fecdd3;
+        border-radius: 8px;
+        background: #fff1f2;
+        color: #be123c;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cart-step-button:disabled,
+    .cart-quantity-input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .cart-quantity-form[aria-busy="true"] {
+        opacity: 0.6;
     }
 
     .cart-summary-row {
@@ -125,6 +190,7 @@
         margin-top: 18px;
         border-radius: 10px;
         line-height: 1.6;
+        overflow-wrap: anywhere;
     }
 
     .cart-success {
@@ -139,72 +205,9 @@
         border: 1px solid #fecdd3;
     }
 
-    .cart-catalog {
-        margin-top: 28px;
-    }
-
-    .cart-books {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        gap: 18px;
-        margin-top: 20px;
-    }
-
-    .cart-book {
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        background: #fff;
-    }
-
-    .cart-cover {
-        display: grid;
-        place-items: center;
-        height: 100px;
-        margin-bottom: 16px;
-        border-radius: 10px;
-        background: #eff6ff;
-        font-size: 48px;
-    }
-
-    .cart-book h3 {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        overflow-wrap: anywhere;
-    }
-
-    .cart-price {
-        color: #2563eb;
-        font-size: 19px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .cart-book form {
-        margin-top: auto;
-        padding-top: 18px;
-    }
-
-    .cart-book label {
-        display: block;
-        font-size: 13px;
-        margin-bottom: 6px;
-    }
-
-    .cart-book input[type="number"] {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        margin-bottom: 10px;
-    }
-
     .cart-button {
         display: block;
+        box-sizing: border-box;
         width: 100%;
         padding: 11px 15px;
         border: 0;
@@ -221,7 +224,11 @@
         background: #1d4ed8;
     }
 
-    @media (max-width: 850px) {
+    .cart-checkout-button {
+        margin-top: 20px;
+    }
+
+    @media (max-width: 1000px) {
         .cart-layout {
             grid-template-columns: 1fr;
         }
@@ -240,7 +247,7 @@
     <h1>Giỏ hàng của bạn</h1>
 
     <p class="cart-muted">
-        Xem sách đã chọn và thêm sách vào giỏ hàng.
+        Xem sách đã chọn, thay đổi số lượng hoặc xóa sách khỏi giỏ hàng.
     </p>
 
     <c:if test="${not empty successMessage}">
@@ -265,12 +272,14 @@
                         <div class="cart-empty">
                             <div class="cart-empty-icon">🛒</div>
                             <h2>Giỏ hàng đang trống</h2>
+
                             <p class="cart-muted">
-                                Chọn sách ở bên dưới để bắt đầu mua sắm.
+                                Hãy chọn sách để thêm vào giỏ hàng.
                             </p>
-                                <a href="${ctx}/home" class="cart-back">
-                                    Tiếp tục mua sắm
-                                </a>
+
+                            <a href="${ctx}/home" class="cart-back">
+                                Tiếp tục mua sắm
+                            </a>
                         </div>
                     </c:when>
 
@@ -283,8 +292,10 @@
                                         <th class="cart-number">Đơn giá</th>
                                         <th class="cart-number">Số lượng</th>
                                         <th class="cart-number">Thành tiền</th>
+                                        <th>Thao tác</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
                                     <c:forEach var="item" items="${cart.items}">
                                         <tr>
@@ -295,9 +306,10 @@
 
                                                 <c:if test="${item.stockWarning}">
                                                     <div class="cart-warning">
-                                                        Số lượng khả dụng hiện tại:
+                                                        Số lượng khả dụng:
                                                         <c:out value="${item.available}" />.
-                                                        Không đủ hàng cho số lượng đã chọn.
+                                                        Vui lòng giảm số lượng
+                                                        hoặc xóa sách khỏi giỏ.
                                                     </div>
                                                 </c:if>
                                             </td>
@@ -310,7 +322,50 @@
                                             </td>
 
                                             <td class="cart-number">
-                                                <c:out value="${item.quantity}" />
+                                                <form action="${ctx}/cart"
+                                                      method="post"
+                                                      class="cart-quantity-form">
+
+                                                    <input type="hidden"
+                                                           name="csrfToken"
+                                                           value="${sessionScope.cartCsrfToken}">
+
+                                                    <input type="hidden"
+                                                           name="action"
+                                                           value="update">
+
+                                                    <input type="hidden"
+                                                           name="itemId"
+                                                           value="${item.id}">
+
+                                                    <button type="button"
+                                                            class="cart-step-button"
+                                                            data-delta="-1"
+                                                            aria-label="Giảm số lượng"
+                                                            <c:if test="${item.available le 0 or item.quantity le 1}">disabled</c:if>>
+                                                        −
+                                                    </button>
+
+                                                    <input type="number"
+                                                           name="quantity"
+                                                           class="cart-quantity-input"
+                                                           value="${item.quantity}"
+                                                           min="1"
+                                                           max="${item.available gt 0 ? item.available : 1}"
+                                                           step="1"
+                                                           inputmode="numeric"
+                                                           aria-label="Số lượng sách"
+                                                           required
+                                                           <c:if test="${item.available le 0}">disabled</c:if>>
+
+                                                    <button type="button"
+                                                            class="cart-step-button"
+                                                            data-delta="1"
+                                                            aria-label="Tăng số lượng"
+                                                            <c:if test="${item.available le 0 or item.quantity ge item.available}">disabled</c:if>>
+                                                        +
+                                                    </button>
+                                                </form>
                                             </td>
 
                                             <td class="cart-number">
@@ -318,6 +373,30 @@
                                                     value="${item.subtotal}"
                                                     maxFractionDigits="0"
                                                 /> ₫
+                                            </td>
+
+                                            <td>
+                                                <form action="${ctx}/cart"
+                                                      method="post"
+                                                      class="cart-remove-form">
+
+                                                    <input type="hidden"
+                                                           name="csrfToken"
+                                                           value="${sessionScope.cartCsrfToken}">
+
+                                                    <input type="hidden"
+                                                           name="action"
+                                                           value="remove">
+
+                                                    <input type="hidden"
+                                                           name="itemId"
+                                                           value="${item.id}">
+
+                                                    <button type="submit"
+                                                            class="cart-remove-button">
+                                                        Xóa
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -352,5 +431,113 @@
         </div>
     </c:if>
 </main>
+
+<script>
+    (function () {
+        let updatePending = false;
+
+        document.querySelectorAll(".cart-quantity-form").forEach(function (form) {
+            const input = form.elements.namedItem("quantity");
+            const originalQuantity = Number(input.value);
+            const buttons = form.querySelectorAll(".cart-step-button");
+
+            function saveQuantity() {
+                if (updatePending || input.disabled) {
+                    return;
+                }
+
+                if (!form.reportValidity()) {
+                    return;
+                }
+
+                if (Number(input.value) === originalQuantity) {
+                    return;
+                }
+
+                form.requestSubmit();
+            }
+
+            form.addEventListener("submit", function (event) {
+                if (updatePending
+                        || input.disabled
+                        || !form.reportValidity()
+                        || Number(input.value) === originalQuantity) {
+                    event.preventDefault();
+                    return;
+                }
+
+                updatePending = true;
+                form.setAttribute("aria-busy", "true");
+                input.readOnly = true;
+
+                document.querySelectorAll(".cart-step-button").forEach(function (button) {
+                    button.disabled = true;
+                });
+            });
+
+            buttons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    if (updatePending || input.disabled) {
+                        return;
+                    }
+
+                    const minimum = Number(input.min);
+                    const maximum = Number(input.max);
+                    const current = Number(input.value);
+                    const delta = Number(button.dataset.delta);
+
+                    if (!Number.isInteger(current)) {
+                        input.reportValidity();
+                        return;
+                    }
+
+                    const next = Math.min(
+                        maximum,
+                        Math.max(minimum, current + delta)
+                    );
+
+                    if (next === current) {
+                        return;
+                    }
+
+                    input.value = next;
+                    saveQuantity();
+                });
+            });
+
+            input.addEventListener("change", saveQuantity);
+
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    saveQuantity();
+                }
+            });
+        });
+
+        document.querySelectorAll(".cart-remove-form").forEach(function (form) {
+            form.addEventListener("submit", function (event) {
+                if (updatePending
+                        || !window.confirm("Bạn muốn xóa sách này khỏi giỏ hàng?")) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        document.querySelectorAll(".cart-checkout-button").forEach(function (link) {
+            link.addEventListener("click", function (event) {
+                if (updatePending) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+    })();
+</script>
 
 <jsp:include page="/views/common/footer.jsp" />
