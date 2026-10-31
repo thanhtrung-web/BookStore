@@ -173,10 +173,11 @@
                                         <c:forEach var="book" items="${books}">
                                             <tr>
                                                 <td>
-                                                    <img src="${book.imageUrl}"
-     alt="Bìa sách"
-     style="width: 70px; height: 95px; object-fit: cover;
+                                                    <a
+                                                        href="${pageContext.request.contextPath}/book-detail?id=${book.id}">
+                                                        <img src="${book.imageUrl}" alt="Bìa sách" style="width: 70px; height: 95px; object-fit: cover;
             border-radius: 6px;" />
+                                                    </a>
                                                 </td>
 
 
