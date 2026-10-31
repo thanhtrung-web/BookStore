@@ -10,7 +10,7 @@
         <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-semibold shadow-sm" role="alert">
             <div class="flex items-center gap-2">
                 <span>👋</span>
-                <span>Bạn đã đăng xuất thành công khỏi hệ thống BookStore.</span>
+                <span>You have successfully signed out of BookStore.</span>
             </div>
             <button type="button" onclick="this.parentElement.parentElement.remove()" class="text-blue-500 hover:text-blue-700 font-bold ml-4">&times;</button>
         </div>
@@ -42,92 +42,92 @@
     <section class="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-sm overflow-x-auto custom-scrollbar">
         <div class="flex items-center justify-between gap-2 min-w-max">
             
-            <!-- 1. Tất cả sách (Active Blue) -->
+            <!-- 1. All Books (Active Blue) -->
             <a href="${pageContext.request.contextPath}/books" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-[11px] min-w-[76px] transition border border-blue-200/80">
                 <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm mb-1 shadow-sm">
                     📖
                 </div>
-                <span>Tất cả sách</span>
+                <span>All Books</span>
             </a>
 
-            <!-- 2. Văn học -->
+            <!-- 2. Literature -->
             <a href="${pageContext.request.contextPath}/books?category=van-hoc" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-sm mb-1">
                     📕
                 </div>
-                <span>Văn học</span>
+                <span>Literature</span>
             </a>
 
-            <!-- 3. Kinh tế -->
+            <!-- 3. Economics -->
             <a href="${pageContext.request.contextPath}/books?category=kinh-te" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm mb-1">
                     📈
                 </div>
-                <span>Kinh tế</span>
+                <span>Economics</span>
             </a>
 
-            <!-- 4. Công nghệ -->
+            <!-- 4. Technology -->
             <a href="${pageContext.request.contextPath}/books?category=cong-nghe" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm mb-1">
                     💻
                 </div>
-                <span>Công nghệ</span>
+                <span>Technology</span>
             </a>
 
-            <!-- 5. Khoa học -->
+            <!-- 5. Science -->
             <a href="${pageContext.request.contextPath}/books?category=khoa-hoc" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center text-sm mb-1">
                     ⚛️
                 </div>
-                <span>Khoa học</span>
+                <span>Science</span>
             </a>
 
-            <!-- 6. Giáo dục -->
+            <!-- 6. Education -->
             <a href="${pageContext.request.contextPath}/books?category=giao-duc" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm mb-1">
                     🎓
                 </div>
-                <span>Giáo dục</span>
+                <span>Education</span>
             </a>
 
-            <!-- 7. Trẻ em -->
+            <!-- 7. Children's Books -->
             <a href="${pageContext.request.contextPath}/books?category=tre-em" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm mb-1">
                     😊
                 </div>
-                <span>Trẻ em</span>
+                <span>Children</span>
             </a>
 
-            <!-- 8. Truyện tranh -->
+            <!-- 8. Comics & Manga -->
             <a href="${pageContext.request.contextPath}/books?category=truyen-tranh" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm mb-1">
                     🎮
                 </div>
-                <span>Truyện tranh</span>
+                <span>Comics</span>
             </a>
 
-            <!-- 9. Sức khỏe -->
+            <!-- 9. Health & Fitness -->
             <a href="${pageContext.request.contextPath}/books?category=suc-khoe" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-sm mb-1">
                     💚
                 </div>
-                <span>Sức khỏe</span>
+                <span>Health</span>
             </a>
 
-            <!-- 10. Kỹ năng sống -->
+            <!-- 10. Self-Help -->
             <a href="${pageContext.request.contextPath}/books?category=ky-nang-song" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm mb-1">
                     🌱
                 </div>
-                <span>Kỹ năng sống</span>
+                <span>Self-Help</span>
             </a>
 
-            <!-- 11. Khác -->
+            <!-- 11. More Categories -->
             <a href="${pageContext.request.contextPath}/categories" class="flex flex-col items-center justify-center py-2 px-3.5 rounded-xl hover:bg-slate-50 text-slate-500 font-semibold text-[11px] min-w-[76px] transition">
                 <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center text-sm mb-1">
                     •••
                 </div>
-                <span>Khác</span>
+                <span>More</span>
             </a>
 
         </div>
@@ -141,19 +141,19 @@
         <!-- ============================================== -->
         <div class="lg:col-span-8 xl:col-span-9 space-y-7">
             
-            <!-- SECTION 1: SÁCH NỔI BẬT (6 BOOKS IN A ROW WITH CAROUSEL ARROWS) -->
+            <!-- SECTION 1: FEATURED BOOKS (6 BOOKS IN A ROW WITH CAROUSEL ARROWS) -->
             <section id="featured-books" class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm relative">
                 
                 <!-- Section Title & Arrows -->
                 <div class="flex items-center justify-between mb-5">
                     <div>
                         <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <span class="text-rose-500">🔥</span> Sách nổi bật
+                            <span class="text-rose-500">🔥</span> Featured Books
                         </h2>
-                        <p class="text-xs text-slate-400 font-medium">Những cuốn sách được yêu thích nhất hiện nay</p>
+                        <p class="text-xs text-slate-400 font-medium">Most popular and critically acclaimed books today</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <a href="${pageContext.request.contextPath}/books?filter=featured" class="text-xs font-bold text-blue-600 hover:underline">Xem tất cả &rarr;</a>
+                        <a href="${pageContext.request.contextPath}/books?filter=featured" class="text-xs font-bold text-blue-600 hover:underline">View all &rarr;</a>
                         <div class="hidden sm:flex items-center gap-1.5">
                             <button type="button" class="w-7 h-7 rounded-full border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -189,7 +189,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -214,7 +214,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -239,7 +239,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -264,7 +264,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -289,7 +289,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -314,7 +314,7 @@
                             </div>
                         </div>
                         <button type="button" class="mt-2.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-xl transition flex items-center justify-center gap-1">
-                            <span>🛒 Thêm vào giỏ</span>
+                            <span>🛒 Add to Cart</span>
                         </button>
                     </div>
 
@@ -461,7 +461,7 @@
                 </div>
             </section>
 
-            <!-- SECTION 3: ĐĂNG KÝ NHẬN TIN -->
+            <!-- SECTION 3: NEWSLETTER SUBSCRIPTION -->
             <section class="rounded-3xl p-6 sm:p-7 bg-gradient-to-r from-[#0c1829] via-[#142643] to-[#1c365d] text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
                 <div class="absolute top-2 left-6 text-amber-300 text-xs opacity-60">✨</div>
                 <div class="absolute bottom-3 left-1/3 text-cyan-300 text-sm opacity-60">★</div>
@@ -471,21 +471,21 @@
                         📬
                     </div>
                     <div>
-                        <h3 class="text-sm sm:text-base font-extrabold text-white">Đăng ký nhận tin</h3>
-                        <p class="text-[11px] text-blue-200">Nhận ngay ưu đãi <strong class="text-amber-400">10%</strong> cho đơn đầu tiên!</p>
+                        <h3 class="text-sm sm:text-base font-extrabold text-white">Subscribe to Newsletter</h3>
+                        <p class="text-[11px] text-blue-200">Get an exclusive <strong class="text-amber-400">10% OFF</strong> your first order!</p>
                     </div>
                 </div>
 
                 <form action="#" method="POST" class="flex items-center w-full md:w-auto max-w-sm rounded-full bg-white p-1 shadow-inner z-10 mb-0">
-                    <input type="email" placeholder="Nhập email của bạn" class="w-full text-slate-800 text-xs px-3.5 py-1.5 focus:outline-none bg-transparent">
+                    <input type="email" placeholder="Enter your email address" class="w-full text-slate-800 text-xs px-3.5 py-1.5 focus:outline-none bg-transparent">
                     <button type="submit" class="bg-[#facc15] hover:bg-yellow-400 text-slate-900 font-extrabold text-xs px-5 py-2 rounded-full transition shadow-sm flex-shrink-0">
-                        Đăng ký
+                        Subscribe
                     </button>
                 </form>
 
                 <div class="z-10 text-center md:text-right flex-shrink-0 hidden lg:block">
                     <span class="font-handwriting text-xl text-amber-300 flex items-center gap-1.5">
-                        Cùng nhau lan tỏa văn hóa đọc! 🚀
+                        Spreading the love for reading together! 🚀
                     </span>
                 </div>
             </section>
@@ -497,17 +497,17 @@
         <!-- ============================================== -->
         <div class="lg:col-span-4 xl:col-span-3 space-y-6">
             
-            <!-- CARD 1: ƯU ĐÃI ĐẶC BIỆT -->
+            <!-- CARD 1: SPECIAL OFFER -->
             <div class="rounded-3xl p-6 bg-gradient-to-br from-blue-700 to-blue-500 text-white shadow-lg relative overflow-hidden flex items-center justify-between">
                 <div class="space-y-2 z-10 max-w-[170px]">
                     <span class="bg-blue-400/40 text-blue-100 font-bold text-[9px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        ƯU ĐÃI ĐẶC BIỆT
+                        SPECIAL OFFER
                     </span>
-                    <h3 class="text-xl font-black leading-tight">Giảm đến 50%</h3>
-                    <p class="text-[11px] text-blue-100 leading-snug">Cho sách giáo khoa & tài liệu học tập</p>
+                    <h3 class="text-xl font-black leading-tight">Up to 50% OFF</h3>
+                    <p class="text-[11px] text-blue-100 leading-snug">On academic textbooks & learning materials</p>
                     <div class="pt-1">
                         <a href="${pageContext.request.contextPath}/books?discount=50" class="inline-block bg-[#facc15] hover:bg-yellow-400 text-slate-900 font-black text-xs px-4 py-1.5 rounded-full transition shadow-sm">
-                            Mua ngay &rarr;
+                            Shop Now &rarr;
                         </a>
                     </div>
                 </div>
@@ -516,14 +516,14 @@
                 </div>
             </div>
 
-            <!-- CARD 2: QUÀ TẶNG HẤP DẪN -->
+            <!-- CARD 2: EXCLUSIVE GIFTS -->
             <div class="rounded-3xl p-6 bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-lg flex items-center justify-between relative overflow-hidden">
                 <div class="space-y-1.5 z-10">
-                    <h3 class="text-lg font-black leading-tight">Quà tặng hấp dẫn</h3>
-                    <p class="text-[11px] text-rose-100">Cho đơn hàng từ 500.000đ</p>
+                    <h3 class="text-lg font-black leading-tight">Exclusive Gifts</h3>
+                    <p class="text-[11px] text-rose-100">For orders over $25.00</p>
                     <div class="pt-2">
                         <a href="${pageContext.request.contextPath}/promotions" class="inline-block bg-white hover:bg-pink-50 text-rose-600 font-extrabold text-[11px] px-4 py-1.5 rounded-full transition shadow-sm">
-                            Xem chi tiết &rarr;
+                            Learn more &rarr;
                         </a>
                     </div>
                 </div>
@@ -532,10 +532,10 @@
                 </div>
             </div>
 
-            <!-- CARD 3: VÌ SAO CHỌN BOOKSTORE? -->
+            <!-- CARD 3: WHY CHOOSE BOOKSTORE? -->
             <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
                 <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                    <span class="text-blue-600">🛡️</span> Vì sao chọn BookStore?
+                    <span class="text-blue-600">🛡️</span> Why Choose BookStore?
                 </h3>
 
                 <div class="space-y-3.5 text-xs">
@@ -544,8 +544,8 @@
                             🛡️
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800">Sách chính hãng</h4>
-                            <p class="text-[11px] text-slate-400">Cam kết 100% sách thật</p>
+                            <h4 class="font-bold text-slate-800">Authentic Books</h4>
+                            <p class="text-[11px] text-slate-400">100% authentic editions guaranteed</p>
                         </div>
                     </div>
 
@@ -554,8 +554,8 @@
                             🚚
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800">Giao hàng nhanh</h4>
-                            <p class="text-[11px] text-slate-400">Toàn quốc, chỉ từ 2-5 ngày</p>
+                            <h4 class="font-bold text-slate-800">Fast Delivery</h4>
+                            <p class="text-[11px] text-slate-400">Nationwide, within 2-5 business days</p>
                         </div>
                     </div>
 
@@ -564,8 +564,8 @@
                             💳
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800">Thanh toán an toàn</h4>
-                            <p class="text-[11px] text-slate-400">Nhiều phương thức thanh toán</p>
+                            <h4 class="font-bold text-slate-800">Secure Payment</h4>
+                            <p class="text-[11px] text-slate-400">Encrypted & verified transactions</p>
                         </div>
                     </div>
 
@@ -574,8 +574,8 @@
                             🎧
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-800">Hỗ trợ 24/7</h4>
-                            <p class="text-[11px] text-slate-400">Luôn sẵn sàng giúp đỡ</p>
+                            <h4 class="font-bold text-slate-800">24/7 Support</h4>
+                            <p class="text-[11px] text-slate-400">Dedicated customer assistance anytime</p>
                         </div>
                     </div>
                 </div>

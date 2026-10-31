@@ -23,6 +23,16 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
+    <!-- Role-Based Access Control Filter (TSK-06 / BR-03) -->
+    <filter>
+        <filter-name>AuthFilter</filter-name>
+        <filter-class>com.bookstore.filter.AuthFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>AuthFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
     <!-- Static Resources Mapping (Images, CSS, JS) -->
     <servlet-mapping>
         <servlet-name>default</servlet-name>
@@ -40,7 +50,7 @@
         <url-pattern></url-pattern>
     </servlet-mapping>
 
-    <!-- AuthController Servlet (UC-01 Register, UC-02 Login, UC-03 Logout) -->
+    <!-- AuthController Servlet (UC-01 Register, UC-02 Login, UC-03 Logout, /dashboard Login) -->
     <servlet>
         <servlet-name>AuthController</servlet-name>
         <servlet-class>com.bookstore.controller.AuthController</servlet-class>
@@ -52,6 +62,27 @@
         <url-pattern>/verify-email</url-pattern>
         <url-pattern>/resend-activation</url-pattern>
         <url-pattern>/logout</url-pattern>
+        <url-pattern>/dashboard</url-pattern>
+        <url-pattern>/dashboard/logout</url-pattern>
+    </servlet-mapping>
+
+    <!-- UserController Servlet (Profile, Change Password, Admin/Staff Dashboards) -->
+    <servlet>
+        <servlet-name>UserController</servlet-name>
+        <servlet-class>com.bookstore.controller.UserController</servlet-class>
+        <multipart-config>
+            <max-file-size>2097152</max-file-size>
+            <max-request-size>5242880</max-request-size>
+            <file-size-threshold>1048576</file-size-threshold>
+        </multipart-config>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>UserController</servlet-name>
+        <url-pattern>/profile</url-pattern>
+        <url-pattern>/change-password</url-pattern>
+        <url-pattern>/dashboard/admin</url-pattern>
+        <url-pattern>/dashboard/staff</url-pattern>
+        <url-pattern>/dashboard/admin/users</url-pattern>
     </servlet-mapping>
 
     <!-- Welcome File -->

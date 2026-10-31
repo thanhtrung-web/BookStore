@@ -75,19 +75,19 @@
                 <nav class="hidden md:flex items-center gap-1">
                     <a href="${pageContext.request.contextPath}/home"
                        class="px-3.5 py-2 rounded-xl text-xs font-bold text-blue-600 bg-blue-50/80 transition">
-                        Trang chủ
+                        Home
                     </a>
                     <a href="#featured-books"
                        class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition">
-                        Sách nổi bật
+                        Featured Books
                     </a>
                     <a href="${pageContext.request.contextPath}/books?filter=new"
                        class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition">
-                        Sách mới
+                        New Releases
                     </a>
                     <a href="${pageContext.request.contextPath}/promotions"
                        class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition">
-                        Khuyến mãi
+                        Promotions
                     </a>
                 </nav>
             </div>
@@ -101,11 +101,11 @@
                     <input type="text"
                            name="q"
                            value="<c:out value='${param.q}'/>"
-                           placeholder="Tìm kiếm sách, tác giả, thể loại..."
+                           placeholder="Search books, authors, genres..."
                            class="w-full pl-9 pr-20 py-2 rounded-full bg-slate-100/90 border border-slate-200/80 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" />
                     <button type="submit"
                             class="absolute right-1 top-1 bottom-1 px-3.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition">
-                        Tìm
+                        Search
                     </button>
                 </div>
             </form>
@@ -116,36 +116,79 @@
                 <!-- Shopping Cart Button -->
                 <a href="${pageContext.request.contextPath}/cart"
                    class="relative p-2 rounded-xl bg-slate-100/80 hover:bg-blue-50 text-slate-700 hover:text-blue-600 transition"
-                   title="Giỏ hàng">
+                   title="Shopping Cart">
                     <span class="text-base leading-none">🛒</span>
                     <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center shadow-xs">
                         ${not empty sessionScope.cartCount ? sessionScope.cartCount : 0}
                     </span>
                 </a>
 
-                <!-- Conditional Auth State (UC-01 / UC-02 / UC-03) -->
+                <!-- Conditional Auth State (UC-01 / UC-02 / UC-03 :UserMenu) -->
                 <c:choose>
                     <c:when test="${not empty sessionScope.authUser}">
-                        <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                                <c:out value="${sessionScope.authUser.fullName.substring(0, 1).toUpperCase()}"/>
-                            </div>
-                            <div class="hidden lg:flex flex-col">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-bold text-slate-800 max-w-[130px] truncate">
-                                        <c:out value="${sessionScope.authUser.fullName}"/>
-                                    </span>
-                                    <span class="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase">
-                                        <c:out value="${sessionScope.userRole}"/>
+                        <div class="relative group flex items-center gap-2 pl-2 border-l border-slate-200">
+                            <a href="${pageContext.request.contextPath}/profile"
+                               class="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-slate-100/80 transition"
+                               title="My Account Profile">
+                                <c:choose>
+                                    <c:when test="${not empty sessionScope.authUser.avatarUrl}">
+                                        <img src="${sessionScope.authUser.avatarUrl}" alt="Avatar" class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/20" />
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                                            <c:out value="${sessionScope.authUser.fullName.substring(0, 1).toUpperCase()}"/>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
+                                <div class="hidden lg:flex flex-col text-left">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-bold text-slate-800 max-w-[130px] truncate">
+                                            <c:out value="${sessionScope.authUser.fullName}"/>
+                                        </span>
+                                        <span class="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase">
+                                            <c:out value="${sessionScope.userRole}"/>
+                                        </span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 max-w-[150px] truncate">
+                                        <c:out value="${sessionScope.authUser.email}"/>
                                     </span>
                                 </div>
-                                <span class="text-[10px] text-slate-400 max-w-[150px] truncate">
-                                    <c:out value="${sessionScope.authUser.email}"/>
-                                </span>
+                            </a>
+
+                            <!-- UserMenu Dropdown (TSK-05 / UC-03 & TSK-07 / UC-05) -->
+                            <div class="absolute right-0 top-full pt-2 w-52 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+                                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-xl py-2 text-xs font-semibold text-slate-700">
+                                    <a href="${pageContext.request.contextPath}/profile" class="flex items-center gap-2.5 px-4 py-2 hover:bg-blue-50 hover:text-blue-600 transition">
+                                        <span>👤</span> <span>Personal Profile</span>
+                                    </a>
+                                    <a href="${pageContext.request.contextPath}/profile#password" class="flex items-center gap-2.5 px-4 py-2 hover:bg-blue-50 hover:text-blue-600 transition">
+                                        <span>🔒</span> <span>Change Password</span>
+                                    </a>
+                                    <a href="${pageContext.request.contextPath}/profile#address" class="flex items-center gap-2.5 px-4 py-2 hover:bg-blue-50 hover:text-blue-600 transition">
+                                        <span>📍</span> <span>Address Book</span>
+                                    </a>
+                                    <c:if test="${sessionScope.userRole == 'ADMIN'}">
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        <a href="${pageContext.request.contextPath}/dashboard/admin" class="flex items-center gap-2.5 px-4 py-2 hover:bg-purple-50 hover:text-purple-600 transition font-bold text-purple-700">
+                                            <span>👑</span> <span>Admin Console</span>
+                                        </a>
+                                    </c:if>
+                                    <c:if test="${sessionScope.userRole == 'STAFF' || sessionScope.userRole == 'INVENTORY_STAFF'}">
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        <a href="${pageContext.request.contextPath}/dashboard/staff" class="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-50 hover:text-emerald-600 transition font-bold text-emerald-700">
+                                            <span>💼</span> <span>Staff Workspace</span>
+                                        </a>
+                                    </c:if>
+                                    <div class="my-1 border-t border-slate-100"></div>
+                                    <a href="${pageContext.request.contextPath}/logout" class="flex items-center gap-2.5 px-4 py-2 text-rose-600 hover:bg-rose-50 transition font-bold">
+                                        <span>🚪</span> <span>Sign Out</span>
+                                    </a>
+                                </div>
                             </div>
+
                             <a href="${pageContext.request.contextPath}/logout"
                                class="ml-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-bold transition">
-                                Đăng xuất
+                                Sign Out
                             </a>
                         </div>
                     </c:when>
@@ -153,11 +196,11 @@
                         <div class="flex items-center gap-2 pl-1">
                             <a href="${pageContext.request.contextPath}/login"
                                class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition">
-                                Đăng nhập
+                                Sign In
                             </a>
                             <a href="${pageContext.request.contextPath}/register"
                                class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition">
-                                Đăng ký
+                                Register
                             </a>
                         </div>
                     </c:otherwise>

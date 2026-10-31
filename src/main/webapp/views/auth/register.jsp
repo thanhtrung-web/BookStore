@@ -709,8 +709,8 @@
             <!-- Right Registration Form Panel -->
             <section class="right-panel">
                 <div class="form-header">
-                    <h1><c:choose><c:when test="${registerSuccess}">Xác thực tài khoản</c:when><c:otherwise>Create Account</c:otherwise></c:choose></h1>
-                    <p><c:choose><c:when test="${registerSuccess}">Nhập mã 6 chữ số đã được gửi tới email của bạn.</c:when><c:otherwise>Join our literary community and start exploring today.</c:otherwise></c:choose></p>
+                    <h1><c:choose><c:when test="${registerSuccess}">Verify Your Account</c:when><c:otherwise>Create Account</c:otherwise></c:choose></h1>
+                    <p><c:choose><c:when test="${registerSuccess}">Enter the 6-digit verification code sent to your email.</c:when><c:otherwise>Join our literary community and start exploring today.</c:otherwise></c:choose></p>
                 </div>
 
                 <!-- Error Alert Box -->
@@ -754,9 +754,9 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 style="font-size: 16px; margin: 0; font-weight: 800; color: #0f172a;">Kiểm tra hộp thư đến</h3>
+                                    <h3 style="font-size: 16px; margin: 0; font-weight: 800; color: #0f172a;">Check Your Inbox</h3>
                                     <p style="font-size: 12.5px; color: #64748b; margin: 0;">
-                                        Mã xác thực đã được gửi tới: <strong style="color:#142d6f;"><c:out value="${registeredEmail}"/></strong>
+                                        A verification code has been sent to: <strong style="color:#142d6f;"><c:out value="${registeredEmail}"/></strong>
                                     </p>
                                 </div>
                             </div>
@@ -776,7 +776,7 @@
                                 <input type="hidden" name="token" id="fullToken" value="" />
 
                                 <button type="submit" class="btn-verify">
-                                    <span>Xác nhận &amp; Kích hoạt tài khoản</span>
+                                    <span>Verify &amp; Activate Account</span>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
                                         <polyline points="12 5 19 12 12 19"></polyline>
@@ -788,13 +788,13 @@
                             <div class="resend-row">
                                 <form action="${pageContext.request.contextPath}/resend-activation" method="POST" id="resendForm" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
                                     <input type="hidden" name="email" value="<c:out value='${registeredEmail}'/>">
-                                    <span>Chưa nhận được mã?</span>
+                                    <span>Didn't receive the code?</span>
                                     <button type="submit" id="resendBtn" disabled class="btn-resend-link">
-                                        Gửi lại mã (<span id="countdown">59</span>s)
+                                        Resend Code (<span id="countdown">59</span>s)
                                     </button>
                                 </form>
                                 <p style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
-                                    Vui lòng kiểm tra thêm thư mục <em>Spam / Thư rác</em> nếu không thấy mã.
+                                    Please check your <em>Spam or Junk</em> folder if you don't see the email.
                                 </p>
                             </div>
                         </div>
@@ -1035,7 +1035,7 @@
                         if (timeLeft <= 0) {
                             clearInterval(timer);
                             resendBtn.disabled = false;
-                            resendBtn.innerHTML = "Gửi lại mã ngay";
+                            resendBtn.innerHTML = "Resend Code Now";
                         }
                     }, 1000);
                 }
