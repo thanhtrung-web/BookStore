@@ -2,6 +2,7 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
 <jsp:include page="/views/common/header.jsp" />
 
 <!DOCTYPE html>
@@ -45,7 +46,7 @@
 
         .book-info {
             flex: 1;
-            min-width: 250px;
+            min-width: 0;
         }
 
         .price {
@@ -69,6 +70,141 @@
         .field {
             margin: 12px 0;
         }
+
+        .purchase-section {
+            margin-top: 30px;
+            padding-top: 22px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quantity-control label {
+            font-size: 16px;
+            font-weight: 600;
+        }
+.quantity-box {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: white;
+}
+
+.quantity-btn {
+    width: 42px;
+    height: 44px;
+    border: none;
+    background: #f8fafc;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.quantity-btn:hover {
+    background: #dbeafe;
+    color: #2563eb;
+}
+        .quantity-input {
+    width: 55px;
+    height: 44px;
+    border: none;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+        .quantity-input:focus {
+            border-color: #2563eb;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .btn-add-cart,
+        .btn-buy-now {
+            flex: 1 1 0;
+            min-width: 0;
+            min-height: 56px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-add-cart {
+            background: white;
+            color: #c92127;
+            border: 2px solid #c92127;
+        }
+
+        .btn-add-cart:hover {
+            background: #fff1f2;
+            box-shadow: 0 4px 12px rgba(201, 33, 39, 0.12);
+        }
+
+        .btn-buy-now {
+            background: #c92127;
+            color: white;
+            border: 2px solid #c92127;
+        }
+
+        .btn-buy-now:hover:not(:disabled) {
+            background: #ad1b20;
+        }
+
+        .btn-buy-now:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+
+            .book-detail {
+                padding: 18px;
+            }
+
+            .book-info {
+                min-width: 100%;
+            }
+
+            .book-actions {
+                flex-direction: column;
+            }
+
+            .btn-add-cart,
+            .btn-buy-now {
+                width: 100%;
+                flex: none;
+            }
+        }
     </style>
 </head>
 
@@ -89,9 +225,11 @@
                          src="<c:out value='${book.imageUrl}' />"
                          alt="Bìa sách">
                 </c:when>
+
                 <c:otherwise>
                     <div class="book-image"
-                         style="display:flex;align-items:center;
+                         style="display:flex;
+                                align-items:center;
                                 justify-content:center;">
                         Chưa có ảnh bìa
                     </div>
@@ -100,11 +238,15 @@
         </div>
 
         <div class="book-info">
-            <h1><c:out value="${book.title}" /></h1>
+
+            <h1>
+                <c:out value="${book.title}" />
+            </h1>
 
             <p class="price">
-                <fmt:formatNumber value="${book.price}"
-                                  pattern="#,##0.##" /> đ
+                <fmt:formatNumber
+                    value="${book.price}"
+                    pattern="#,##0.##" /> đ
             </p>
 
             <div class="field">
@@ -148,13 +290,88 @@
             </div>
 
             <h3>Mô tả sách</h3>
+
             <p class="description">
                 <c:out value="${book.description}" />
             </p>
+
+            <div class="purchase-section">
+
+                <form id="addToCartForm"
+                      action="${pageContext.request.contextPath}/cart/add"
+                      method="post">
+
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="${sessionScope.cartCsrfToken}">
+
+                    <input type="hidden"
+                           name="bookId"
+                           value="${book.id}">
+
+                    
+<div class="quantity-control">
+    <label for="quantity">Số lượng:</label>
+
+    <div class="quantity-box">
+        <button type="button"
+                class="quantity-btn"
+                onclick="changeQuantity(-1)">
+            −
+        </button>
+
+        <input type="number"
+               id="quantity"
+               name="quantity"
+               class="quantity-input"
+               value="1"
+               min="1"
+               required>
+
+        <button type="button"
+                class="quantity-btn"
+                onclick="changeQuantity(1)">
+            +
+        </button>
+    </div>
+</div>
+
+
+                    <div class="book-actions">
+
+                        <button type="submit"
+                                class="btn-add-cart">
+                            🛒 Thêm vào giỏ hàng
+                        </button>
+
+                        
+<button type="submit"
+        name="buyNow"
+        value="true"
+        class="btn-buy-now">
+    Mua ngay
+</button>
+
+
+                    </div>
+
+                </form>
+
+            </div>
+
         </div>
 
     </div>
+
 </div>
+<script>
+    function changeQuantity(amount) {
+        const input = document.getElementById("quantity");
+        const current = parseInt(input.value, 10) || 1;
+        input.value = Math.max(1, current + amount);
+    }
+</script>
 </body>
 </html>
+
 <jsp:include page="/views/common/footer.jsp" />

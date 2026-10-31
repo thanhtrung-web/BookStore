@@ -49,6 +49,7 @@ public class CartController extends HttpServlet {
 
             session.removeAttribute("cartSuccess");
             session.removeAttribute("cartError");
+            boolean buyNowSuccess = false;
         }
 
         try {
@@ -101,19 +102,27 @@ public class CartController extends HttpServlet {
 
         session.removeAttribute("cartSuccess");
         session.removeAttribute("cartError");
+        boolean buyNowSuccess = false;
+
 
         try {
             String action = request.getParameter("action");
             String successMessage;
 
-            if ("/cart/add".equals(request.getServletPath())) {
-                cartService.addToCart(
-                        user.getId(),
-                        request.getParameter("bookId"),
-                        request.getParameter("quantity")
-                );
+            
+if ("/cart/add".equals(request.getServletPath())) {
+    cartService.addToCart(
+            user.getId(),
+            request.getParameter("bookId"),
+            request.getParameter("quantity")
+    );
 
-                successMessage = "Đã thêm sách vào giỏ hàng.";
+    buyNowSuccess = "true".equals(
+            request.getParameter("buyNow")
+    );
+
+    successMessage = "Đã thêm sách vào giỏ hàng.";
+
 
             } else if ("update".equals(action)) {
                 cartService.updateQuantity(
@@ -152,7 +161,15 @@ public class CartController extends HttpServlet {
             );
         }
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+        if (buyNowSuccess) {
+    response.sendRedirect(
+            request.getContextPath() + "/order/checkout"
+    );
+} else {
+    response.sendRedirect(
+            request.getContextPath() + "/cart"
+    );
+}
     }
 
     private User requireLogin(HttpServletRequest request,

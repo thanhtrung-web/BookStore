@@ -245,6 +245,7 @@
     <a class="cart-back" href="${ctx}/home">← Về trang chủ</a>
 
     <h1>Giỏ hàng của bạn</h1>
+    
 
     <p class="cart-muted">
         Xem sách đã chọn, thay đổi số lượng hoặc xóa sách khỏi giỏ hàng.

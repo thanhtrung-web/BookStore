@@ -13,6 +13,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
+import javax.servlet.http.HttpSession;
 
 @WebServlet(urlPatterns = { "/books", "/book-detail" })
 public class BookController extends HttpServlet {
@@ -116,10 +118,22 @@ public class BookController extends HttpServlet {
                 return;
             }
 
-            request.setAttribute("book", book);
+           HttpSession session = request.getSession();
 
-            request.getRequestDispatcher(
-                    "/views/book-detail.jsp").forward(request, response);
+synchronized (session) {
+    if (session.getAttribute("cartCsrfToken") == null) {
+        session.setAttribute(
+            "cartCsrfToken",
+            UUID.randomUUID().toString()
+        );
+    }
+}
+
+request.setAttribute("book", book);
+
+request.getRequestDispatcher(
+        "/views/book-detail.jsp"
+).forward(request, response);
 
         } catch (NumberFormatException e) {
             response.sendError(
