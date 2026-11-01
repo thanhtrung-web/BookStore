@@ -14,33 +14,87 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.net.URLEncoder;
 
 public class OrderController extends HttpServlet {
 
     private final OrderService orderService = new OrderService();
 
-    @Override
-    protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
-            throws ServletException, IOException {
+   @Override
+protected void doGet(HttpServletRequest request,
+                     HttpServletResponse response)
+        throws ServletException, IOException {
 
-        User user = requireLogin(request, response);
+    User user = requireLogin(request, response);
 
-        if (user == null) {
-            return;
+    if (user == null) {
+        return;
+    }
+
+    if ("success".equals(request.getParameter("view"))) {
+        renderOrderSuccess(request, response, user);
+        return;
+    }
+
+    ensureTokens(request.getSession());
+
+    Map<String, String> form = new LinkedHashMap<>();
+    form.put("recipientName", "");
+    form.put("phone", "");
+    form.put("shippingAddress", "");
+    form.put("note", "");
+    form.put("voucherCode", "");
+
+    renderCheckout(request, response, user, form);
+}
+private void renderOrderSuccess(HttpServletRequest request,
+                                HttpServletResponse response,
+                                User user)
+        throws ServletException, IOException {
+
+    response.setHeader("Cache-Control", "no-store");
+    response.setContentType("text/html;charset=UTF-8");
+    request.setAttribute("pageTitle", "Thông tin đơn hàng - BookStore");
+
+    try {
+        Map<String, Object> order = orderService.getOrderDetails(
+                user.getId(), request.getParameter("orderCode")
+        );
+
+        if (order == null) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            request.setAttribute(
+                    "errorMessage",
+                    "Không tìm thấy đơn hàng."
+            );
+        } else {
+            request.setAttribute("order", order);
         }
 
-        ensureTokens(request.getSession());
-
-        Map<String, String> form = new LinkedHashMap<>();
-        form.put("recipientName", "");
-        form.put("phone", "");
-        form.put("shippingAddress", "");
-        form.put("note", "");
-        form.put("voucherCode", "");
-
-        renderCheckout(request, response, user, form);
+    } catch (SQLException e) {
+        getServletContext().log("Could not load order details.", e);
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        request.setAttribute(
+                "errorMessage",
+                "Không tải được thông tin đơn hàng. "
+                        + "Vui lòng tải lại trang để kiểm tra."
+        );
     }
+
+    request.getRequestDispatcher("/WEB-INF/views/order-detail.jsp")
+            .forward(request, response);
+}
+private void redirectToOrderSuccess(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    String orderCode)
+        throws IOException {
+
+    String location = request.getContextPath()
+            + "/order/checkout?view=success&orderCode="
+            + URLEncoder.encode(orderCode, "UTF-8");
+
+    response.sendRedirect(location);
+}
 
     @Override
     protected void doPost(HttpServletRequest request,
@@ -104,15 +158,20 @@ public class OrderController extends HttpServlet {
                     (String) session.getAttribute("completedOrderToken");
 
             if (suppliedToken != null && suppliedToken.equals(completedToken)) {
-                session.setAttribute(
-                        "cartSuccess",
-                        "Đơn hàng đã được ghi nhận. Mã đơn: "
-                                + session.getAttribute("completedOrderCode")
-                );
+    String completedCode =
+            (String) session.getAttribute("completedOrderCode");
 
-                response.sendRedirect(request.getContextPath() + "/cart");
-                return;
-            }
+    if (completedCode == null || completedCode.isEmpty()) {
+        response.sendError(
+                HttpServletResponse.SC_CONFLICT,
+                "Không xác định được đơn hàng. Vui lòng mở lại trang."
+        );
+        return;
+    }
+
+    redirectToOrderSuccess(request, response, completedCode);
+    return;
+}
 
             String expectedToken =
                     (String) session.getAttribute("orderRequestToken");
@@ -143,20 +202,15 @@ public class OrderController extends HttpServlet {
                     );
 
                     session.setAttribute("completedOrderToken", suppliedToken);
-                    session.setAttribute("completedOrderCode", orderCode);
-                    session.removeAttribute("orderRequestToken");
-                    session.removeAttribute("appliedVoucher");
-                    session.setAttribute("cartCount", 0L);
-                    session.removeAttribute("cartError");
-                    session.setAttribute(
-                            "cartSuccess",
-                            "Đặt hàng thành công. Mã đơn: " + orderCode
-                    );
+session.setAttribute("completedOrderCode", orderCode);
+session.removeAttribute("orderRequestToken");
+session.removeAttribute("appliedVoucher");
+session.setAttribute("cartCount", 0L);
+session.removeAttribute("cartError");
+session.removeAttribute("cartSuccess");
 
-                    response.sendRedirect(
-                            request.getContextPath() + "/cart"
-                    );
-                    return;
+redirectToOrderSuccess(request, response, orderCode);
+return;
 
                 } catch (IllegalArgumentException e) {
                     request.setAttribute("errorMessage", e.getMessage());
