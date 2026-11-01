@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 public class OrderService {
 
@@ -173,4 +174,34 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
                 userId, orderCode, form, SHIPPING_FEE
         );
     }
+    
+public Map<String, Object> getOrderHistory(long userId, int page)
+        throws SQLException {
+
+    if (userId <= 0) {
+        throw new IllegalArgumentException("Người dùng không hợp lệ.");
+    }
+
+    final int pageSize = 10;
+
+    int totalOrders = orderDAO.countOrdersByUser(userId);
+    int totalPages = Math.max(
+            1, (totalOrders + pageSize - 1) / pageSize
+    );
+
+    int currentPage = Math.max(1, Math.min(page, totalPages));
+
+    List<Map<String, Object>> orders = totalOrders == 0
+            ? new ArrayList<>()
+            : orderDAO.findOrderHistory(userId, currentPage, pageSize);
+
+    Map<String, Object> history = new LinkedHashMap<>();
+    history.put("orders", orders);
+    history.put("totalOrders", totalOrders);
+    history.put("currentPage", currentPage);
+    history.put("totalPages", totalPages);
+
+    return history;
+}
+
 }
