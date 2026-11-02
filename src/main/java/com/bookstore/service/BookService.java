@@ -24,7 +24,7 @@ public class BookService {
     public List<Category> getActiveCategories() throws SQLException { return bookDAO.getActiveCategories(); }
     public List<Author> getActiveAuthors() throws SQLException { return bookDAO.getActiveAuthors(); }
     public void createBook(Book book,int initialStock) throws SQLException { bookDAO.createBook(book,initialStock); }
-    public void updateBook(Book book,long actorId) throws SQLException { if(book.getId()==null||book.getId()<=0) throw new IllegalArgumentException("Mã sách không hợp lệ."); bookDAO.updateBook(book,actorId); }
+    public void updateBook(Book book,long actorId) throws SQLException { if(book.getId()==null||book.getId()<=0) throw new IllegalArgumentException("Invalid book ID."); bookDAO.updateBook(book,actorId); }
     public void softDeleteBook(long id) throws SQLException { bookDAO.softDeleteBook(id); }
 
     // Count total books

@@ -140,7 +140,7 @@ public class BookController extends HttpServlet {
 
     private long parseId(String value) {
         try { long id = Long.parseLong(value); if (id > 0) return id; } catch (Exception ignored) { }
-        throw new IllegalArgumentException("Mã sách không hợp lệ.");
+        throw new IllegalArgumentException("Invalid book ID.");
     }
 
     private Book readBookForm(HttpServletRequest request) throws IOException, ServletException {
@@ -153,7 +153,7 @@ public class BookController extends HttpServlet {
         book.setPublicationYear(parseNullableInt(request.getParameter("publicationYear")));
         book.setEdition(parseNullableInt(request.getParameter("edition")));
         try { book.setPrice(new java.math.BigDecimal(request.getParameter("price"))); }
-        catch (Exception e) { throw new IllegalArgumentException("Giá sách không hợp lệ."); }
+        catch (Exception e) { throw new IllegalArgumentException("Invalid book price."); }
         book.setDiscountPercent(parseNullableInt(request.getParameter("discountPercent")) == null ? 0 : parseNullableInt(request.getParameter("discountPercent")));
         book.setDescription(request.getParameter("description"));
         book.setPageCount(parseNullableInt(request.getParameter("pageCount")));
@@ -187,7 +187,7 @@ public class BookController extends HttpServlet {
 
     private Integer parseNullableInt(String value) {
         if (value == null || value.trim().isEmpty()) return null;
-        try { return Integer.valueOf(value); } catch (NumberFormatException e) { throw new IllegalArgumentException("Giá trị số không hợp lệ."); }
+        try { return Integer.valueOf(value); } catch (NumberFormatException e) { throw new IllegalArgumentException("Invalid numeric value."); }
     }
 
     private List<Long> parseIdList(String[] values) {

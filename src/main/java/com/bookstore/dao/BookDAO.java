@@ -83,7 +83,7 @@ public class BookDAO {
         try(Connection c=DBContext.getConnection()) { c.setAutoCommit(false); try {
             assertUniqueIsbn(c, b.getIsbn(), null);
             long id;
-            try(PreparedStatement ps=c.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) { bindBook(ps,b); ps.executeUpdate(); try(ResultSet rs=ps.getGeneratedKeys()){if(!rs.next()) throw new SQLException("Không lấy được mã sách vừa tạo."); id=rs.getLong(1);} }
+            try(PreparedStatement ps=c.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) { bindBook(ps,b); ps.executeUpdate(); try(ResultSet rs=ps.getGeneratedKeys()){if(!rs.next()) throw new SQLException("Could not retrieve the new book ID."); id=rs.getLong(1);} }
             ensureInventory(c,id,initialStock); saveImage(c,id,b.getImageUrl()); replaceBookAssociations(c, id, b);
             c.commit();
         } catch(SQLException|RuntimeException e){c.rollback(); throw e;} }
@@ -95,7 +95,7 @@ public class BookDAO {
         try(Connection c=DBContext.getConnection()) { c.setAutoCommit(false); try {
             assertUniqueIsbn(c, b.getIsbn(), b.getId());
             java.math.BigDecimal previousSalePrice = loadCurrentSalePrice(c, b.getId());
-            try(PreparedStatement ps=c.prepareStatement(sql)) { bindBook(ps,b); ps.setLong(15,b.getId()); if(ps.executeUpdate()!=1) throw new IllegalArgumentException("Không tìm thấy sách cần cập nhật."); }
+            try(PreparedStatement ps=c.prepareStatement(sql)) { bindBook(ps,b); ps.setLong(15,b.getId()); if(ps.executeUpdate()!=1) throw new IllegalArgumentException("Book to update was not found."); }
             saveImage(c,b.getId(),b.getImageUrl()); replaceBookAssociations(c, b.getId(), b);
             if (previousSalePrice.compareTo(b.getSalePrice()) != 0) {
                 try (PreparedStatement ps = c.prepareStatement("INSERT INTO dbo.book_price_history(book_id,old_price,new_price,changed_by,reason) VALUES(?,?,?,?,?)")) {
@@ -107,9 +107,9 @@ public class BookDAO {
     }
 
     public void softDeleteBook(long id) throws SQLException {
-        if(id<=0) throw new IllegalArgumentException("Mã sách không hợp lệ.");
+        if(id<=0) throw new IllegalArgumentException("Invalid book ID.");
         try(Connection c=DBContext.getConnection()) { c.setAutoCommit(false); try {
-            try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.books SET is_deleted=1,status='INACTIVE',updated_at=GETDATE() WHERE id=? AND is_deleted=0")){ps.setLong(1,id); if(ps.executeUpdate()!=1) throw new IllegalArgumentException("Sách không tồn tại hoặc đã được xóa.");}
+            try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.books SET is_deleted=1,status='INACTIVE',updated_at=GETDATE() WHERE id=? AND is_deleted=0")){ps.setLong(1,id); if(ps.executeUpdate()!=1) throw new IllegalArgumentException("Book does not exist or has already been deleted.");}
             c.commit();
         } catch(SQLException|RuntimeException e){c.rollback(); throw e;} }
     }

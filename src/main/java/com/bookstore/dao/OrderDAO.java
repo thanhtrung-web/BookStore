@@ -41,19 +41,19 @@ public class OrderDAO {
     public void updateAdminOrderStatus(long orderId,String nextStatus,long staffId,String reason) throws SQLException {
         String[] allowed={"PENDING","CONFIRMED","PROCESSING","SHIPPING","DELIVERED","CANCELLED"};
         boolean valid=false;for(String s:allowed) if(s.equals(nextStatus)) valid=true;
-        if(!valid||orderId<=0||staffId<=0) throw new IllegalArgumentException("Trạng thái hoặc mã đơn không hợp lệ.");
+        if(!valid||orderId<=0||staffId<=0) throw new IllegalArgumentException("Invalid order ID or status.");
         try(Connection c=DBContext.getConnection()){c.setAutoCommit(false);try{
             String previous;
-            try(PreparedStatement ps=c.prepareStatement("SELECT order_status FROM dbo.orders WITH (UPDLOCK) WHERE id=?")){ps.setLong(1,orderId);try(ResultSet rs=ps.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Không tìm thấy đơn hàng.");previous=rs.getString(1);}}
-            if("CANCELLED".equals(previous)) throw new IllegalArgumentException("Đơn đã kết thúc và không thể đổi trạng thái.");
-            if(previous.equals(nextStatus)) throw new IllegalArgumentException("Đơn hàng đang ở trạng thái này.");
+            try(PreparedStatement ps=c.prepareStatement("SELECT order_status FROM dbo.orders WITH (UPDLOCK) WHERE id=?")){ps.setLong(1,orderId);try(ResultSet rs=ps.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Order was not found.");previous=rs.getString(1);}}
+            if("CANCELLED".equals(previous)) throw new IllegalArgumentException("This order is closed and cannot be updated.");
+            if(previous.equals(nextStatus)) throw new IllegalArgumentException("The order already has this status.");
             boolean transition = "PENDING".equals(previous) && ("CONFIRMED".equals(nextStatus)||"CANCELLED".equals(nextStatus))
                     || "CONFIRMED".equals(previous) && ("PROCESSING".equals(nextStatus)||"CANCELLED".equals(nextStatus))
                     || "PROCESSING".equals(previous) && ("SHIPPING".equals(nextStatus)||"CANCELLED".equals(nextStatus))
                     || "SHIPPING".equals(previous) && "DELIVERED".equals(nextStatus);
-            if(!transition) throw new IllegalArgumentException("Không thể chuyển đơn từ "+previous+" sang "+nextStatus+".");
+            if(!transition) throw new IllegalArgumentException("Cannot change order status from "+previous+" to "+nextStatus+".");
             try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.orders SET order_status=?,updated_at=GETDATE() WHERE id=?")){ps.setString(1,nextStatus);ps.setLong(2,orderId);ps.executeUpdate();}
-            try(PreparedStatement ps=c.prepareStatement("INSERT INTO dbo.order_status_history(order_id,previous_status,new_status,changed_by,reason) VALUES(?,?,?,?,?)")){ps.setLong(1,orderId);ps.setString(2,previous);ps.setString(3,nextStatus);ps.setLong(4,staffId);ps.setNString(5,reason==null||reason.trim().isEmpty()?"Admin cập nhật trạng thái đơn hàng":reason.trim());ps.executeUpdate();}
+            try(PreparedStatement ps=c.prepareStatement("INSERT INTO dbo.order_status_history(order_id,previous_status,new_status,changed_by,reason) VALUES(?,?,?,?,?)")){ps.setLong(1,orderId);ps.setString(2,previous);ps.setString(3,nextStatus);ps.setLong(4,staffId);ps.setNString(5,reason==null||reason.trim().isEmpty()?"Admin updated order status":reason.trim());ps.executeUpdate();}
             c.commit();
         }catch(SQLException|RuntimeException e){c.rollback();throw e;}}
     }
