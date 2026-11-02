@@ -110,12 +110,20 @@
 
             <!-- Admin Navigation Menu -->
             <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto custom-scrollbar text-xs">
+
+                <div class="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Executive
+                </div>
                 
                 <!-- 1. Dashboard -->
                 <button onclick="navigateAdminTo('dashboard')" id="nav-dashboard" class="w-full nav-item-active flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold transition text-slate-600 hover:bg-slate-100">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     <span>Executive Dashboard</span>
                 </button>
+
+                <div class="px-3 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Catalog &amp; Inventory
+                </div>
 
                 <!-- Book Catalog -->
                 <button onclick="window.location.href='${pageContext.request.contextPath}/dashboard/admin?view=books'" id="nav-books" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition">
@@ -130,6 +138,10 @@
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                     <span>Categories &amp; Authors</span>
                 </button>
+
+                <div class="px-3 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Sales &amp; Commerce
+                </div>
 
                 <!-- Orders Management -->
                 <button onclick="window.location.href='${pageContext.request.contextPath}/dashboard/admin?view=orders'" id="nav-orders" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition">
@@ -146,6 +158,10 @@
                         <span>Return &amp; Refund Audit</span>
                     </div>
                 </button>
+
+                <div class="px-3 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-purple-600">
+                    Administration &amp; Security
+                </div>
 
                 <!-- User Accounts & RBAC -->
                 <button type="button"
