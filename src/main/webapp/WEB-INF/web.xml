@@ -114,6 +114,7 @@
     <servlet-mapping>
         <servlet-name>OrderController</servlet-name>
         <url-pattern>/order/checkout</url-pattern>
+        <url-pattern>/dashboard/admin/orders</url-pattern>
     </servlet-mapping>
 
 </web-app>
