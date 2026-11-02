@@ -6,6 +6,9 @@ import com.bookstore.model.Book;
 
 import java.sql.SQLException;
 import java.util.List;
+import com.bookstore.model.Publisher;
+import com.bookstore.model.Category;
+import com.bookstore.model.Author;
 
 public class BookService {
 
@@ -14,6 +17,15 @@ public class BookService {
     public BookService() {
         this.bookDAO = new BookDAO();
     }
+
+    public List<Book> getAdminBooks() throws SQLException { return bookDAO.getAdminBooks(); }
+    public List<Book> getAdminBooks(String keyword,Long categoryId,Long authorId,java.math.BigDecimal minPrice,java.math.BigDecimal maxPrice) throws SQLException { return bookDAO.getAdminBooks(keyword,categoryId,authorId,minPrice,maxPrice); }
+    public List<Publisher> getActivePublishers() throws SQLException { return bookDAO.getActivePublishers(); }
+    public List<Category> getActiveCategories() throws SQLException { return bookDAO.getActiveCategories(); }
+    public List<Author> getActiveAuthors() throws SQLException { return bookDAO.getActiveAuthors(); }
+    public void createBook(Book book,int initialStock) throws SQLException { bookDAO.createBook(book,initialStock); }
+    public void updateBook(Book book,long actorId) throws SQLException { if(book.getId()==null||book.getId()<=0) throw new IllegalArgumentException("Mã sách không hợp lệ."); bookDAO.updateBook(book,actorId); }
+    public void softDeleteBook(long id) throws SQLException { bookDAO.softDeleteBook(id); }
 
     // Count total books
     public int countBooks() throws SQLException {

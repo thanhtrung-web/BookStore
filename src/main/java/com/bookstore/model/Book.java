@@ -3,6 +3,8 @@ package com.bookstore.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Book {
 
@@ -27,6 +29,11 @@ public class Book {
     // Chỉ dùng để hiển thị, không phải cột trong bảng books
     private String publisherName;
     private String imageUrl;
+    private String authorNames;
+    private String categoryNames;
+    private Integer availableStock;
+    private List<Long> authorIds = new ArrayList<>();
+    private List<Long> categoryIds = new ArrayList<>();
 
     public Book() {
     }
@@ -201,5 +208,23 @@ public class Book {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getAuthorNames() { return authorNames; }
+    public void setAuthorNames(String authorNames) { this.authorNames = authorNames; }
+    public String getCategoryNames() { return categoryNames; }
+    public void setCategoryNames(String categoryNames) { this.categoryNames = categoryNames; }
+    public Integer getAvailableStock() { return availableStock; }
+    public void setAvailableStock(Integer availableStock) { this.availableStock = availableStock; }
+    public List<Long> getAuthorIds() { return authorIds; }
+    public void setAuthorIds(List<Long> authorIds) { this.authorIds = authorIds == null ? new ArrayList<>() : authorIds; }
+    public List<Long> getCategoryIds() { return categoryIds; }
+    public void setCategoryIds(List<Long> categoryIds) { this.categoryIds = categoryIds == null ? new ArrayList<>() : categoryIds; }
+
+    public BigDecimal getSalePrice() {
+        if (price == null) return null;
+        int discount = discountPercent == null ? 0 : discountPercent;
+        return price.multiply(BigDecimal.valueOf(100 - discount))
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
     }
 }
