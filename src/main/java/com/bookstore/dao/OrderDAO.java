@@ -524,4 +524,62 @@ public Map<String, Object> findOrderByCode(long userId, String orderCode)
             statement.executeUpdate();
         }
     }
+    
+public List<Map<String, Object>> findOrderHistory(
+        long userId, int page, int pageSize) throws SQLException {
+
+    String sql =
+            "SELECT order_code, created_at, final_amount, " +
+            "payment_method, payment_status, order_status " +
+            "FROM dbo.orders " +
+            "WHERE user_id = ? " +
+            "ORDER BY created_at DESC, id DESC " +
+            "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+
+    List<Map<String, Object>> orders = new ArrayList<>();
+
+    try (Connection connection = DBContext.getConnection();
+         PreparedStatement statement = connection.prepareStatement(sql)) {
+
+        statement.setLong(1, userId);
+        statement.setInt(2, (page - 1) * pageSize);
+        statement.setInt(3, pageSize);
+
+        try (ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                Map<String, Object> order = new LinkedHashMap<>();
+
+                order.put("orderCode", result.getString("order_code"));
+                order.put("createdAt", result.getTimestamp("created_at"));
+                order.put("finalAmount", result.getBigDecimal("final_amount"));
+                order.put("paymentMethod", result.getString("payment_method"));
+                order.put("paymentStatus", result.getString("payment_status"));
+                order.put("orderStatus", result.getString("order_status"));
+
+                orders.add(order);
+            }
+        }
+    }
+
+    return orders;
+}
+
+public int countOrdersByUser(long userId) throws SQLException {
+    String sql = "SELECT COUNT(*) FROM dbo.orders WHERE user_id = ?";
+
+    try (Connection connection = DBContext.getConnection();
+         PreparedStatement statement = connection.prepareStatement(sql)) {
+
+        statement.setLong(1, userId);
+
+        try (ResultSet result = statement.executeQuery()) {
+            if (result.next()) {
+                return result.getInt(1);
+            }
+        }
+    }
+
+    return 0;
+}
+
 }
