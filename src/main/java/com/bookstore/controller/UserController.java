@@ -5,6 +5,8 @@ import com.bookstore.model.User;
 import com.bookstore.service.UserService;
 import com.bookstore.service.UserService.PasswordChangeResult;
 import com.bookstore.service.UserService.ProfileUpdateResult;
+import com.bookstore.service.OrderService;
+import com.bookstore.service.BookService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -22,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
+import java.util.UUID;
 
 /**
  * Controller for User Management (Customer Profile, Password Change, and
@@ -37,7 +40,7 @@ import java.sql.SQLException;
  * - GET /dashboard/admin/users -> Redirect to integrated user management
  * - POST /dashboard/admin/users -> Administrator Lock / Unlock User Status
  *
- * TSK-31:
+ * Dashboard reports are loaded through the existing report module:
  * - Load dashboard summary, top-selling books and revenue analytics.
  */
 @WebServlet(name = "UserController", urlPatterns = {
@@ -69,8 +72,10 @@ public class UserController extends HttpServlet {
             "/views/admin/user-list.jsp";
 
     private UserService userService;
+    private OrderService orderService;
+    private BookService bookService;
 
-    // TSK-31: Controller for dashboard revenue and book reports.
+    // Reuse the report module assigned to the reporting task.
     private final ReportController reportController =
             new ReportController();
 
@@ -78,6 +83,8 @@ public class UserController extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         this.userService = new UserService();
+        this.orderService = new OrderService();
+        this.bookService = new BookService();
     }
 
     // =========================================================================
@@ -140,8 +147,67 @@ public class UserController extends HttpServlet {
                 return;
             }
 
-            // TSK-31: Load dashboard KPIs, top books and revenue analytics.
+            // Reuse report-module data for the dashboard view.
             reportController.loadDashboardReport(request);
+
+            HttpSession adminSession = request.getSession(false);
+            if (adminSession != null && adminSession.getAttribute("adminCsrfToken") == null) {
+                adminSession.setAttribute("adminCsrfToken", UUID.randomUUID().toString());
+            }
+
+            if ("books".equals(request.getParameter("view"))) {
+                try {
+                    String keyword = request.getParameter("q");
+                    Long categoryId = parseLongFilter(request.getParameter("categoryId"));
+                    Long authorId = parseLongFilter(request.getParameter("authorId"));
+                    java.math.BigDecimal minPrice = parseDecimalFilter(request.getParameter("minPrice"));
+                    java.math.BigDecimal maxPrice = parseDecimalFilter(request.getParameter("maxPrice"));
+                    if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+                        throw new IllegalArgumentException("Minimum price cannot exceed maximum price.");
+                    }
+                    request.setAttribute("books", bookService.getAdminBooks(keyword, categoryId, authorId, minPrice, maxPrice));
+                    request.setAttribute("bookCategories", bookService.getActiveCategories());
+                    request.setAttribute("bookAuthors", bookService.getActiveAuthors());
+                    request.setAttribute("bookKeyword", keyword);
+                    request.setAttribute("bookCategoryFilter", categoryId);
+                    request.setAttribute("bookAuthorFilter", authorId);
+                    request.setAttribute("bookMinPrice", minPrice);
+                    request.setAttribute("bookMaxPrice", maxPrice);
+                } catch (IllegalArgumentException ex) {
+                    request.setAttribute("bookLoadError", true);
+                    request.setAttribute("bookFilterError", ex.getMessage());
+                } catch (SQLException ex) {
+                    getServletContext().log("Failed to load books for admin dashboard.", ex);
+                    request.setAttribute("bookLoadError", true);
+                }
+                if (adminSession != null) {
+                    request.setAttribute("errorMessage", adminSession.getAttribute("adminBookError"));
+                    adminSession.removeAttribute("adminBookError");
+                }
+            }
+
+            // Load real order data only when the integrated Orders view is requested.
+            if ("orders".equals(request.getParameter("view"))) {
+                try {
+                    String orderStatusFilter = request.getParameter("status");
+                    if (orderStatusFilter != null && !java.util.Set.of("PENDING_PAYMENT", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPING", "DELIVERED", "CANCELLED").contains(orderStatusFilter)) {
+                        orderStatusFilter = null;
+                    }
+                    request.setAttribute("selectedOrderStatus", orderStatusFilter == null ? "ALL" : orderStatusFilter);
+                    request.setAttribute("orders", orderService.getAdminOrders(orderStatusFilter));
+                } catch (SQLException ex) {
+                    getServletContext().log("Failed to load orders for admin dashboard.", ex);
+                    request.setAttribute("ordersLoadError", true);
+                }
+            } else if (request.getParameter("view") == null || "dashboard".equals(request.getParameter("view"))) {
+                try {
+                    java.util.List<java.util.Map<String, Object>> allOrders = orderService.getAdminOrders();
+                    request.setAttribute("recentOrders", allOrders.subList(0, Math.min(5, allOrders.size())));
+                } catch (SQLException ex) {
+                    getServletContext().log("Failed to load recent orders for admin dashboard.", ex);
+                    request.setAttribute("recentOrdersLoadError", true);
+                }
+            }
 
             request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW)
                     .forward(request, response);
@@ -270,7 +336,7 @@ public class UserController extends HttpServlet {
                 return;
             }
 
-            // TSK-31: Reload dashboard reports before forwarding.
+            // Reuse report-module data after admin actions.
             reportController.loadDashboardReport(request);
 
             request.getRequestDispatcher(ADMIN_DASHBOARD_VIEW)
@@ -422,6 +488,20 @@ public class UserController extends HttpServlet {
     // =========================================================================
     // AUTHORIZATION
     // =========================================================================
+
+    private Long parseLongFilter(String value) {
+        if (value == null || value.isBlank()) return null;
+        try { long parsed = Long.parseLong(value); return parsed > 0 ? parsed : null; }
+        catch (NumberFormatException ex) { return null; }
+    }
+
+    private java.math.BigDecimal parseDecimalFilter(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            java.math.BigDecimal parsed = new java.math.BigDecimal(value);
+            return parsed.signum() >= 0 ? parsed : null;
+        } catch (NumberFormatException ex) { return null; }
+    }
 
     private boolean isAdmin(HttpServletRequest request) {
 

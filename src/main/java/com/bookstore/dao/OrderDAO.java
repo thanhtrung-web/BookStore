@@ -16,6 +16,48 @@ import java.util.Map;
 public class OrderDAO {
 
     private final StockDAO stockDAO = new StockDAO();
+
+    public List<Map<String,Object>> findAdminOrders() throws SQLException {
+        return findAdminOrders(null);
+    }
+
+    public List<Map<String,Object>> findAdminOrders(String statusFilter) throws SQLException {
+        List<Map<String,Object>> orders=new ArrayList<>();
+        String sql="SELECT o.id,o.order_code,o.recipient_name,o.recipient_phone,o.final_amount,o.payment_method,o.payment_status,o.order_status,o.created_at,u.full_name " +
+                "FROM dbo.orders o JOIN dbo.users u ON u.id=o.user_id " +
+                "WHERE (? IS NULL OR (?='PENDING_PAYMENT' AND o.payment_status='PENDING') OR o.order_status=?) " +
+                "ORDER BY o.created_at DESC,o.id DESC";
+        try(Connection c=DBContext.getConnection();PreparedStatement ps=c.prepareStatement(sql)) {
+            ps.setString(1, statusFilter);
+            ps.setString(2, statusFilter);
+            ps.setString(3, statusFilter);
+            try(ResultSet rs=ps.executeQuery()) {
+                while(rs.next()){Map<String,Object> row=new LinkedHashMap<>();row.put("id",rs.getLong("id"));row.put("orderCode",rs.getString("order_code"));row.put("recipientName",rs.getString("recipient_name"));row.put("recipientPhone",rs.getString("recipient_phone"));row.put("finalAmount",rs.getBigDecimal("final_amount"));row.put("paymentMethod",rs.getString("payment_method"));row.put("paymentStatus",rs.getString("payment_status"));row.put("orderStatus",rs.getString("order_status"));row.put("createdAt",rs.getTimestamp("created_at"));row.put("customerName",rs.getString("full_name"));orders.add(row);}
+            }
+        }
+        return orders;
+    }
+
+    public void updateAdminOrderStatus(long orderId,String nextStatus,long staffId,String reason) throws SQLException {
+        String[] allowed={"PENDING","CONFIRMED","PROCESSING","SHIPPING","DELIVERED","CANCELLED"};
+        boolean valid=false;for(String s:allowed) if(s.equals(nextStatus)) valid=true;
+        if(!valid||orderId<=0||staffId<=0) throw new IllegalArgumentException("Trạng thái hoặc mã đơn không hợp lệ.");
+        try(Connection c=DBContext.getConnection()){c.setAutoCommit(false);try{
+            String previous;
+            try(PreparedStatement ps=c.prepareStatement("SELECT order_status FROM dbo.orders WITH (UPDLOCK) WHERE id=?")){ps.setLong(1,orderId);try(ResultSet rs=ps.executeQuery()){if(!rs.next())throw new IllegalArgumentException("Không tìm thấy đơn hàng.");previous=rs.getString(1);}}
+            if("CANCELLED".equals(previous)) throw new IllegalArgumentException("Đơn đã kết thúc và không thể đổi trạng thái.");
+            if(previous.equals(nextStatus)) throw new IllegalArgumentException("Đơn hàng đang ở trạng thái này.");
+            boolean transition = "PENDING".equals(previous) && ("CONFIRMED".equals(nextStatus)||"CANCELLED".equals(nextStatus))
+                    || "CONFIRMED".equals(previous) && ("PROCESSING".equals(nextStatus)||"CANCELLED".equals(nextStatus))
+                    || "PROCESSING".equals(previous) && ("SHIPPING".equals(nextStatus)||"CANCELLED".equals(nextStatus))
+                    || "SHIPPING".equals(previous) && "DELIVERED".equals(nextStatus);
+            if(!transition) throw new IllegalArgumentException("Không thể chuyển đơn từ "+previous+" sang "+nextStatus+".");
+            try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.orders SET order_status=?,updated_at=GETDATE() WHERE id=?")){ps.setString(1,nextStatus);ps.setLong(2,orderId);ps.executeUpdate();}
+            try(PreparedStatement ps=c.prepareStatement("INSERT INTO dbo.order_status_history(order_id,previous_status,new_status,changed_by,reason) VALUES(?,?,?,?,?)")){ps.setLong(1,orderId);ps.setString(2,previous);ps.setString(3,nextStatus);ps.setLong(4,staffId);ps.setNString(5,reason==null||reason.trim().isEmpty()?"Admin cập nhật trạng thái đơn hàng":reason.trim());ps.executeUpdate();}
+            c.commit();
+        }catch(SQLException|RuntimeException e){c.rollback();throw e;}}
+    }
+
 public Map<String, Object> findOrderByCode(long userId, String orderCode)
         throws SQLException {
 

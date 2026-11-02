@@ -17,6 +17,11 @@ public class OrderService {
     private final CartDAO cartDAO = new CartDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final VoucherService voucherService = new VoucherService();
+    public List<Map<String,Object>> getAdminOrders() throws SQLException { return orderDAO.findAdminOrders(); }
+    public List<Map<String,Object>> getAdminOrders(String statusFilter) throws SQLException { return orderDAO.findAdminOrders(statusFilter); }
+    public void updateAdminOrderStatus(long id,String status,long staffId,String reason) throws SQLException {
+        orderDAO.updateAdminOrderStatus(id,status,staffId,reason);
+    }
 public Map<String, Object> getOrderDetails(long userId, String orderCode)
         throws SQLException {
 

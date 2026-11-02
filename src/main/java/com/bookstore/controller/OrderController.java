@@ -25,6 +25,12 @@ protected void doGet(HttpServletRequest request,
                      HttpServletResponse response)
         throws ServletException, IOException {
 
+    if ("/dashboard/admin/orders".equals(request.getServletPath())) {
+        if (!requireAdmin(request,response)) return;
+        response.sendRedirect(request.getContextPath() + "/dashboard/admin?view=orders");
+        return;
+    }
+
     User user = requireLogin(request, response);
 
     if (user == null) {
@@ -102,6 +108,21 @@ private void redirectToOrderSuccess(HttpServletRequest request,
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
+
+        if ("/dashboard/admin/orders".equals(request.getServletPath())) {
+            if (!requireAdmin(request,response)) return;
+            HttpSession adminSession=request.getSession(false);
+            String csrf=adminSession==null?null:(String)adminSession.getAttribute("adminCsrfToken");
+            if(csrf==null||!csrf.equals(request.getParameter("csrfToken"))){response.sendError(HttpServletResponse.SC_FORBIDDEN);return;}
+            try {
+                long orderId=Long.parseLong(request.getParameter("orderId"));
+                User admin=(User)adminSession.getAttribute("authUser");
+                orderService.updateAdminOrderStatus(orderId,request.getParameter("orderStatus"),admin.getId(),request.getParameter("reason"));
+                response.sendRedirect(request.getContextPath()+"/dashboard/admin?view=orders&message=updated");
+            } catch(IllegalArgumentException e){response.sendRedirect(request.getContextPath()+"/dashboard/admin?view=orders&message=invalid");}
+            catch(SQLException e){throw new ServletException("Unable to update order",e);}
+            return;
+        }
 
         User user = requireLogin(request, response);
 
@@ -202,15 +223,15 @@ private void redirectToOrderSuccess(HttpServletRequest request,
                     );
 
                     session.setAttribute("completedOrderToken", suppliedToken);
-session.setAttribute("completedOrderCode", orderCode);
-session.removeAttribute("orderRequestToken");
-session.removeAttribute("appliedVoucher");
-session.setAttribute("cartCount", 0L);
-session.removeAttribute("cartError");
-session.removeAttribute("cartSuccess");
+                    session.setAttribute("completedOrderCode", orderCode);
+                    session.removeAttribute("orderRequestToken");
+                    session.removeAttribute("appliedVoucher");
+                    session.setAttribute("cartCount", 0L);
+                    session.removeAttribute("cartError");
+                    session.removeAttribute("cartSuccess");
 
-redirectToOrderSuccess(request, response, orderCode);
-return;
+                    redirectToOrderSuccess(request, response, orderCode);
+                    return;
 
                 } catch (IllegalArgumentException e) {
                     request.setAttribute("errorMessage", e.getMessage());
@@ -228,6 +249,29 @@ return;
         }
 
         renderCheckout(request, response, user, form);
+    }
+
+    private boolean requireAdmin(HttpServletRequest request,
+                                 HttpServletResponse response)
+            throws IOException {
+        HttpSession session = request.getSession(false);
+        User user = session == null
+                ? null : (User) session.getAttribute("authUser");
+
+        if (user == null || !user.hasRole("ADMIN")) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return false;
+        }
+
+        synchronized (session) {
+            if (session.getAttribute("adminCsrfToken") == null) {
+                session.setAttribute(
+                        "adminCsrfToken", UUID.randomUUID().toString()
+                );
+            }
+        }
+
+        return true;
     }
 
     private void renderCheckout(HttpServletRequest request,
