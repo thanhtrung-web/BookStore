@@ -9,7 +9,7 @@
         <a style="color:#cbd5e1;text-decoration:none" href="${pageContext.request.contextPath}/dashboard/staff">Staff Workspace</a>
         <a style="color:#cbd5e1;text-decoration:none" href="${pageContext.request.contextPath}/home">Storefront ↗</a>
         <details style="position:relative">
-            <summary style="cursor:pointer;color:#fff;list-style:none;padding:8px 10px;border-radius:8px;background:#1e293b"><c:out value="${sessionScope.authUser.fullName}"/> ▾</summary>
+            <summary style="cursor:pointer;color:#fff;list-style:none;padding:8px 10px;border-radius:8px;background:#1e293b"><c:choose><c:when test="${sessionScope.authUser.fullName eq 'Quản Trị Viên'}">Administrator</c:when><c:otherwise><c:out value="${sessionScope.authUser.fullName}"/></c:otherwise></c:choose> ▾</summary>
             <div style="position:absolute;right:0;top:36px;width:180px;background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 24px #0003;z-index:50">
                 <a style="display:block;padding:9px;color:#334155;text-decoration:none" href="${pageContext.request.contextPath}/profile">My Profile</a>
                 <a style="display:block;padding:9px;color:#334155;text-decoration:none" href="${pageContext.request.contextPath}/change-password">Change Password</a>

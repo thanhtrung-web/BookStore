@@ -80,7 +80,10 @@
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-base shadow-sm">
                         <c:choose>
                             <c:when test="${not empty sessionScope.authUser}">
-                                <c:out value="${sessionScope.authUser.fullName.substring(0, 1).toUpperCase()}"/>
+                                <c:choose>
+                                    <c:when test="${sessionScope.authUser.fullName eq 'Quản Trị Viên'}">A</c:when>
+                                    <c:otherwise><c:out value="${sessionScope.authUser.fullName.substring(0, 1).toUpperCase()}"/></c:otherwise>
+                                </c:choose>
                             </c:when>
                             <c:otherwise>AD</c:otherwise>
                         </c:choose>
@@ -89,9 +92,12 @@
                         <h4 class="text-xs font-bold text-slate-900 truncate">
                             <c:choose>
                                 <c:when test="${not empty sessionScope.authUser}">
-                                    <c:out value="${sessionScope.authUser.fullName}"/> (Admin)
+                                    <c:choose>
+                                        <c:when test="${sessionScope.authUser.fullName eq 'Quản Trị Viên'}">Administrator</c:when>
+                                        <c:otherwise><c:out value="${sessionScope.authUser.fullName}"/></c:otherwise>
+                                    </c:choose>
                                 </c:when>
-                                <c:otherwise>TrungTT (Admin)</c:otherwise>
+                                <c:otherwise>Administrator</c:otherwise>
                             </c:choose>
                         </h4>
                         <div class="flex items-center gap-1.5 mt-0.5">
@@ -213,7 +219,7 @@
                     <!-- Welcome Banner -->
                     <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div class="space-y-1">
-                            <h3 class="text-base font-extrabold">Welcome back, <c:out value="${sessionScope.authUser.fullName}"/>!</h3>
+                            <h3 class="text-base font-extrabold">Hello, Administrator!</h3>
                             <p class="text-xs text-blue-200">Here is an overview of your bookstore operations.</p>
                         </div>
                     </div>
