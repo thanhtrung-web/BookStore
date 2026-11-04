@@ -167,6 +167,10 @@
                                     <a href="${pageContext.request.contextPath}/profile#address" class="flex items-center gap-2.5 px-4 py-2 hover:bg-blue-50 hover:text-blue-600 transition">
                                         <span>📍</span> <span>Address Book</span>
                                     </a>
+                                    <a href="${pageContext.request.contextPath}/order/checkout?view=history"
+   class="flex items-center gap-3 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+    <span>📦</span><span>Order History</span>
+</a>
                                     <c:if test="${sessionScope.userRole == 'ADMIN'}">
                                         <div class="my-1 border-t border-slate-100"></div>
                                         <a href="${pageContext.request.contextPath}/dashboard/admin" class="flex items-center gap-2.5 px-4 py-2 hover:bg-purple-50 hover:text-purple-600 transition font-bold text-purple-700">

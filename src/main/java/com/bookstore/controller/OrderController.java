@@ -41,6 +41,12 @@ protected void doGet(HttpServletRequest request,
         renderOrderSuccess(request, response, user);
         return;
     }
+    
+if ("history".equals(request.getParameter("view"))) {
+    renderOrderHistory(request, response, user);
+    return;
+}
+
 
     ensureTokens(request.getSession());
 
@@ -53,6 +59,55 @@ protected void doGet(HttpServletRequest request,
 
     renderCheckout(request, response, user, form);
 }
+
+private void renderOrderHistory(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        User user) throws ServletException, IOException {
+
+    response.setHeader("Cache-Control", "no-store");
+    response.setContentType("text/html;charset=UTF-8");
+
+    request.setAttribute("pageTitle", "Lịch sử mua hàng - BookStore");
+
+    int page = 1;
+
+    try {
+        String pageParam = request.getParameter("page");
+
+        if (pageParam != null) {
+            page = Math.max(1, Integer.parseInt(pageParam));
+        }
+    } catch (NumberFormatException e) {
+        page = 1;
+    }
+
+    try {
+        Map<String, Object> history =
+                orderService.getOrderHistory(user.getId(), page);
+
+        request.setAttribute("orders", history.get("orders"));
+        request.setAttribute("totalOrders", history.get("totalOrders"));
+        request.setAttribute("currentPage", history.get("currentPage"));
+        request.setAttribute("totalPages", history.get("totalPages"));
+
+    } catch (SQLException e) {
+        getServletContext().log("Could not load order history.", e);
+
+        response.setStatus(
+                HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+        );
+
+        request.setAttribute(
+                "errorMessage",
+                "Không tải được lịch sử mua hàng. Vui lòng thử lại sau."
+        );
+    }
+
+    request.getRequestDispatcher("/WEB-INF/views/order-history.jsp")
+            .forward(request, response);
+}
+
 private void renderOrderSuccess(HttpServletRequest request,
                                 HttpServletResponse response,
                                 User user)
