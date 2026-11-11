@@ -18,26 +18,35 @@ public class OrderService {
     private final CartDAO cartDAO = new CartDAO();
     private final OrderDAO orderDAO = new OrderDAO();
     private final VoucherService voucherService = new VoucherService();
-    public List<Map<String,Object>> getAdminOrders() throws SQLException { return orderDAO.findAdminOrders(); }
-    public List<Map<String,Object>> getAdminOrders(String statusFilter) throws SQLException { return orderDAO.findAdminOrders(statusFilter); }
-    public void updateAdminOrderStatus(long id,String status,long staffId,String reason) throws SQLException {
-        orderDAO.updateAdminOrderStatus(id,status,staffId,reason);
-    }
-public Map<String, Object> getOrderDetails(long userId, String orderCode)
-        throws SQLException {
 
-    if (userId <= 0 || orderCode == null) {
-        return null;
+    public List<Map<String, Object>> getAdminOrders() throws SQLException {
+        return orderDAO.findAdminOrders();
     }
 
-    String normalizedCode = orderCode.trim();
-
-    if (!normalizedCode.matches("BS-[0-9a-fA-F]{32}")) {
-        return null;
+    public List<Map<String, Object>> getAdminOrders(String statusFilter) throws SQLException {
+        return orderDAO.findAdminOrders(statusFilter);
     }
 
-    return orderDAO.findOrderByCode(userId, normalizedCode);
-}
+    public void updateAdminOrderStatus(long id, String status, long staffId, String reason) throws SQLException {
+        orderDAO.updateAdminOrderStatus(id, status, staffId, reason);
+    }
+
+    public Map<String, Object> getOrderDetails(long userId, String orderCode)
+            throws SQLException {
+
+        if (userId <= 0 || orderCode == null) {
+            return null;
+        }
+
+        String normalizedCode = orderCode.trim();
+
+        if (!normalizedCode.matches("BS-[0-9a-fA-F]{32}")) {
+            return null;
+        }
+
+        return orderDAO.findOrderByCode(userId, normalizedCode);
+    }
+
     public Map<String, Object> getCheckout(long userId, String voucherCode)
             throws SQLException {
 
@@ -52,8 +61,7 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
             int available = ((Number) item.get("available")).intValue();
             BigDecimal unitPrice = (BigDecimal) item.get("unitPrice");
 
-            BigDecimal lineTotal =
-                    unitPrice.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
 
             boolean stockWarning = quantity <= 0 || quantity > available;
 
@@ -75,8 +83,7 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
         if (voucherCode != null && !voucherCode.trim().isEmpty()) {
             try {
                 voucher = voucherService.applyVoucher(
-                        voucherCode.trim(), subtotal
-                );
+                        voucherCode.trim(), subtotal);
 
                 discount = (BigDecimal) voucher.get("discountAmount");
 
@@ -94,8 +101,7 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
         checkout.put("discount", discount);
         checkout.put(
                 "finalAmount",
-                subtotal.subtract(discount).add(SHIPPING_FEE)
-        );
+                subtotal.subtract(discount).add(SHIPPING_FEE));
         checkout.put("voucher", voucher);
         checkout.put("voucherError", voucherError);
         checkout.put("stockValid", stockValid);
@@ -115,22 +121,19 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
         if (recipientName.isEmpty() || recipientName.length() > 100) {
             errors.put(
                     "recipientName",
-                    "Nhập tên người nhận từ 1 đến 100 ký tự."
-            );
+                    "Nhập tên người nhận từ 1 đến 100 ký tự.");
         }
 
         if (!phone.matches("(0[0-9]{9}|\\+84[0-9]{9})")) {
             errors.put(
                     "phone",
-                    "Nhập 10 chữ số bắt đầu bằng 0, hoặc số dạng +84."
-            );
+                    "Nhập 10 chữ số bắt đầu bằng 0, hoặc số dạng +84.");
         }
 
         if (address.isEmpty() || address.length() > 255) {
             errors.put(
                     "shippingAddress",
-                    "Nhập địa chỉ nhận hàng từ 1 đến 255 ký tự."
-            );
+                    "Nhập địa chỉ nhận hàng từ 1 đến 255 ký tự.");
         }
 
         if (note.length() > 500) {
@@ -140,16 +143,15 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
         if (voucherCode.length() > 50) {
             errors.put(
                     "voucherCode",
-                    "Mã giảm giá không được vượt quá 50 ký tự."
-            );
+                    "Mã giảm giá không được vượt quá 50 ký tự.");
         }
 
         return errors;
     }
 
     public String placeOrder(long userId,
-                             String requestToken,
-                             Map<String, String> form) throws SQLException {
+            String requestToken,
+            Map<String, String> form) throws SQLException {
 
         if (userId <= 0) {
             throw new IllegalArgumentException("Vui lòng đăng nhập lại.");
@@ -159,8 +161,7 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(
-                    errors.values().iterator().next()
-            );
+                    errors.values().iterator().next());
         }
 
         String normalizedToken;
@@ -169,45 +170,41 @@ public Map<String, Object> getOrderDetails(long userId, String orderCode)
             normalizedToken = UUID.fromString(requestToken).toString();
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new IllegalArgumentException(
-                    "Phiên đặt hàng không hợp lệ. Vui lòng mở lại trang."
-            );
+                    "Phiên đặt hàng không hợp lệ. Vui lòng mở lại trang.");
         }
 
         String orderCode = "BS-" + normalizedToken.replace("-", "");
 
         return orderDAO.placeOrder(
-                userId, orderCode, form, SHIPPING_FEE
-        );
-    }
-}
-    
-public Map<String, Object> getOrderHistory(long userId, int page)
-        throws SQLException {
-
-    if (userId <= 0) {
-        throw new IllegalArgumentException("Người dùng không hợp lệ.");
+                userId, orderCode, form, SHIPPING_FEE);
     }
 
-    final int pageSize = 10;
+    public Map<String, Object> getOrderHistory(long userId, int page)
+            throws SQLException {
 
-    int totalOrders = orderDAO.countOrdersByUser(userId);
-    int totalPages = Math.max(
-            1, (totalOrders + pageSize - 1) / pageSize
-    );
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Người dùng không hợp lệ.");
+        }
 
-    int currentPage = Math.max(1, Math.min(page, totalPages));
+        final int pageSize = 10;
 
-    List<Map<String, Object>> orders = totalOrders == 0
-            ? new ArrayList<>()
-            : orderDAO.findOrderHistory(userId, currentPage, pageSize);
+        int totalOrders = orderDAO.countOrdersByUser(userId);
+        int totalPages = Math.max(
+                1, (totalOrders + pageSize - 1) / pageSize);
 
-    Map<String, Object> history = new LinkedHashMap<>();
-    history.put("orders", orders);
-    history.put("totalOrders", totalOrders);
-    history.put("currentPage", currentPage);
-    history.put("totalPages", totalPages);
+        int currentPage = Math.max(1, Math.min(page, totalPages));
 
-    return history;
-}
+        List<Map<String, Object>> orders = totalOrders == 0
+                ? new ArrayList<>()
+                : orderDAO.findOrderHistory(userId, currentPage, pageSize);
+
+        Map<String, Object> history = new LinkedHashMap<>();
+        history.put("orders", orders);
+        history.put("totalOrders", totalOrders);
+        history.put("currentPage", currentPage);
+        history.put("totalPages", totalPages);
+
+        return history;
+    }
 
 }
